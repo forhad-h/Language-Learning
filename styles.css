@@ -360,31 +360,48 @@ button[aria-pressed="true"] {
 }
 
 /* "Back to all lessons" link shown at the top of the lesson view.
-   Sits inside .app-sidebar on lesson pages (stacked above the
-   lesson list) and floats at the top-left of landing pages. */
+   On lesson pages it sits inside the sidebar's .breadcrumb nav
+   alongside a separator; on landing pages it floats at the top-left
+   as a pill. */
 .home-link {
   font-size: 13px;
   color: var(--ink-soft);
   text-decoration: none;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: var(--surface);
-  border: 1px solid var(--rule);
-  transition: background 120ms ease, color 120ms ease;
-  align-self: start;
+  transition: color 120ms ease;
 }
 .home-link:hover {
-  background: var(--surface-soft);
   color: var(--ink);
 }
-/* On landing pages, only one .home-link exists and it lives
-   outside the sidebar. Float it at the top-left for now. */
+/* Breadcrumb trail — small plain-text links separated by '/'. */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 1.2;
+  flex-wrap: wrap;
+}
+.breadcrumb-sep {
+  color: var(--ink-mute);
+  user-select: none;
+}
+/* On landing pages, the .home-link lives outside the sidebar.
+   Float it at the top-left as a pill. */
 .landing > .home-link,
 body[data-view="landing"] > .home-link {
   position: absolute;
   inset-block-start: 12px;
   inset-inline-start: 12px;
   z-index: 5;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+}
+.landing > .home-link:hover,
+body[data-view="landing"] > .home-link:hover {
+  background: var(--surface-soft);
+  color: var(--ink);
 }
 
 .app-sidebar {
