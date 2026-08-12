@@ -1,0 +1,6 @@
+# Dependencies
+node_modules/
+
+# Local env / OS
+.DS_Store
+*.log

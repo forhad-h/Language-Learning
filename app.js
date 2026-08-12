@@ -1,20 +1,113 @@
-/* app.js — render every card from window.LESSONS[*] into one page.
+/* app.js — Generic renderer for language-learning cards.
  *
- * Each card is a self-contained <article> with its own phrase tokens.
- * Phrase groups share a stable `data-pair` id so that hovering or
- * focusing a phrase anywhere on the page highlights every phrase
- * that carries the same id (and dims the rest of that line).
+ * Concerns handled here:
+ *   1. Lesson registry (read window.LC_LESSONS, build sidebar/select,
+ *      persist active lesson, switch on user input).
+ *   2. Generic card rendering — palette slots, phrase tokens,
+ *      cross-highlighting, per-lesson sentence-level translate
+ *      affordance.
+ *   3. Display controls (font size, plain text) wired to the
+ *      bottom-center toolbar; choices persist in localStorage.
  *
- * All phrase fragments are inserted with `textContent`; HTML in
- * lesson data is never evaluated. Per-element `lang` and `dir` come
- * from the lesson locale, so an Arabic card will render correctly
- * without any code change beyond adding data.
+ * Lesson data (cards, sentences, translate config) lives in
+ * <Language>/lessons/*.js. No language-specific code lives in
+ * this file.
+ *
+ * Each card is a self-contained <article> with its own phrase
+ * tokens. Phrase groups share a stable data-pair id so that
+ * hovering or focusing a phrase anywhere on the page highlights
+ * every phrase that carries the same id (and dims the rest of
+ * that line). All phrase fragments are inserted with textContent;
+ * HTML in lesson data is never evaluated. Per-element lang and
+ * dir come from the lesson locale, so any language pair renders
+ * correctly without code changes.
  */
 
 (function () {
   "use strict";
 
-  var lessons = window.LESSONS || [];
+  /* ---------------------------------------------------------
+     Section A — Lesson registry
+     --------------------------------------------------------- */
+
+  var lessons = Array.isArray(window.LC_LESSONS) ? window.LC_LESSONS : [];
+  var LS_ACTIVE = "lc-active-lesson";
+
+  function getActiveLessonId() {
+    var stored = null;
+    try { stored = window.localStorage.getItem(LS_ACTIVE); } catch (e) {}
+    if (stored && lessons.some(function (l) { return l.id === stored; })) {
+      return stored;
+    }
+    return lessons[0] ? lessons[0].id : null;
+  }
+
+  function setActiveLesson(id, opts) {
+    opts = opts || {};
+    if (!lessons.some(function (l) { return l.id === id; })) return;
+    try { window.localStorage.setItem(LS_ACTIVE, id); } catch (e) {}
+    document.body.setAttribute("data-active-lesson", id);
+    renderRegistry(id);
+    renderActiveLesson();
+    // Sync the URL hash so the lesson is deep-linkable. Skip the
+    // hash update when navigating to the active lesson that's
+    // already reflected in the URL — avoids creating history
+    // entries on every sidebar click.
+    if (!opts.skipHash) {
+      var lesson = lessons.find(function (l) { return l.id === id; });
+      var hash = lesson && lesson.path ? "#/" + lesson.path : "";
+      if (location.hash !== hash) {
+        if (hash) {
+          location.hash = hash;
+        } else {
+          // Removing the hash to return to landing page — use
+          // replaceState so we don't pollute history.
+          history.replaceState(null, "", location.pathname + location.search);
+        }
+      }
+    }
+  }
+
+  function renderRegistry(activeId) {
+    var list = document.querySelector("[data-lesson-list]");
+    if (!list) return;
+    list.innerHTML = "";
+    lessons.forEach(function (lesson) {
+      var li = document.createElement("li");
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "lesson-item";
+      btn.setAttribute("data-lesson-id", lesson.id);
+      btn.textContent = lesson.short || lesson.title || lesson.id;
+      btn.title = lesson.title || lesson.id;
+      if (lesson.id === activeId) {
+        btn.setAttribute("aria-current", "page");
+        btn.classList.add("is-active");
+      }
+      btn.addEventListener("click", function () {
+        setActiveLesson(lesson.id);
+      });
+      li.appendChild(btn);
+      list.appendChild(li);
+    });
+
+    var select = document.querySelector("[data-lesson-select]");
+    if (select) {
+      select.innerHTML = "";
+      lessons.forEach(function (lesson) {
+        var opt = document.createElement("option");
+        opt.value = lesson.id;
+        opt.textContent = lesson.short || lesson.title || lesson.id;
+        if (lesson.id === activeId) opt.selected = true;
+        select.appendChild(opt);
+      });
+    }
+  }
+
+  /* ---------------------------------------------------------
+     Section B — Generic card renderer (lesson-agnostic)
+     --------------------------------------------------------- */
+
   var stack = document.querySelector("[data-card-stack]");
   if (!stack) return;
 
@@ -62,16 +155,11 @@
       ordered.push({ kind: "unpaired", text: txt });
     });
 
-    // Helper: does a string already end with whitespace?
     function endsWithSpace(s) {
       return /\s$/.test(s);
     }
 
     ordered.forEach(function (frag, i) {
-      // Insert a single space separator before any fragment whose
-      // own text doesn't already start with whitespace AND whose
-      // previous visible fragment didn't end with whitespace.
-      // (Skipped for the very first fragment.)
       var sepNeeded = false;
       if (i > 0) {
         var prevNode = lineTextEl.lastChild;
@@ -117,7 +205,6 @@
         if (suffix && phraseText && phraseText.length >= suffix.length) {
           var cut;
           if (suffixPos != null) {
-            // Explicit anchor: split phraseText at suffixPos.
             cut = suffixPos;
           } else {
             cut = phraseText.length - suffix.length;
@@ -137,6 +224,7 @@
         } else {
           btn.textContent = phraseText;
         }
+
         lineTextEl.appendChild(btn);
       } else {
         if (sepNeeded) lineTextEl.appendChild(document.createTextNode(" "));
@@ -160,10 +248,13 @@
     }
   }
 
-  function renderCard(lesson, card, cardIndex, total) {
+  function renderCard(lesson, card) {
     var art = document.createElement("article");
     art.className = "card";
     art.setAttribute("data-card", "");
+    if (lesson.target && lesson.target.font) {
+      art.style.setProperty("--target-font", "var(--font-" + lesson.target.font + ")");
+    }
 
     var head = document.createElement("header");
     head.className = "card-head";
@@ -183,19 +274,19 @@
     meaningEn.lang = "en";
     meaning.appendChild(meaningEn);
 
-    if (card.meaningBn) {
+    if (card.meaningBn || (lesson.target && card[lesson.target.code])) {
       var sep = document.createElement("span");
       sep.className = "meaning-sep";
       sep.textContent = " · ";
       sep.setAttribute("aria-hidden", "true");
       meaning.appendChild(sep);
 
-      var meaningBn = document.createElement("span");
-      meaningBn.className = "meaning-bn";
-      meaningBn.textContent = card.meaningBn;
-      meaningBn.lang = lesson.target.code;
-      meaningBn.dir = lesson.target.dir;
-      meaning.appendChild(meaningBn);
+      var meaningTg = document.createElement("span");
+      meaningTg.className = "meaning-tg";
+      meaningTg.textContent = card.meaningBn || card[lesson.target.code] || "";
+      meaningTg.lang = lesson.target.code;
+      meaningTg.dir = lesson.target.dir;
+      meaning.appendChild(meaningTg);
     }
 
     head.appendChild(expression);
@@ -215,11 +306,52 @@
     renderLine(src.text, card, "source", lesson.source);
     renderLine(tgt.text, card, "target", lesson.target);
 
+    // Sentence-level translate affordance. Per-lesson: if the
+    // lesson declares `translate: { sl, tl }`, wrap the source
+    // line text in a flex container and append a Translate button
+    // that opens Google Translate in a single reused tab.
+    if (lesson.translate) {
+      var body = document.createElement("span");
+      body.className = "line-body";
+      src.p.replaceChild(body, src.text);
+      body.appendChild(src.text);
+
+      var sentenceQuery = buildSentenceText(card, "source");
+      var sBtn = document.createElement("button");
+      sBtn.type = "button";
+      sBtn.className = "gt-sentence";
+      sBtn.textContent = "🔊 Translate";
+      sBtn.title = "Translate the " + lesson.source.label +
+                   " sentence to " + lesson.target.label;
+      sBtn.setAttribute("aria-label",
+        "Translate the " + lesson.source.label +
+        " sentence to " + lesson.target.label);
+      sBtn.addEventListener("click", function () {
+        openInTranslateTab(sentenceQuery, lesson);
+      });
+      body.appendChild(sBtn);
+    }
+
     return art;
   }
 
-  function onPhraseFocus(e) {
-    var el = e.currentTarget;
+  // Build the visible source (or target) text for a card so the
+  // sentence button sends exactly what the user sees.
+  function buildSentenceText(card, localeKey) {
+    var parts = card.groups.map(function (g) { return g[localeKey]; });
+    var tail = (card.unpaired && card.unpaired[localeKey]) || [];
+    tail.forEach(function (t) { parts.push(t); });
+    return parts.join(" ").replace(/\s+/g, " ").trim();
+  }
+
+  // Monotonic focus token so a stale blur from a previous phrase
+  // can never clear the focus state of a newer one. Any new
+  // focus event bumps the counter; the blur handler only acts
+  // if its captured token still matches the current value.
+  var focusToken = 0;
+
+  function applyFocus(targetEl) {
+    var el = targetEl;
     var pid = el.getAttribute("data-pair");
     var card = el.closest(".card");
     if (!card) return;
@@ -234,8 +366,39 @@
       }
     });
   }
-  function onPhraseBlur() {
+
+  function clearFocus() {
+    stack.querySelectorAll(".line").forEach(function (line) {
+      line.classList.remove("has-focus");
+    });
+    stack.querySelectorAll(".phrase").forEach(function (p) {
+      p.classList.remove("is-focus-self");
+    });
+  }
+
+  function onPhraseFocus(e) {
+    var myToken = ++focusToken;
+    var el = e.currentTarget;
+    applyFocus(el);
+    // Verify the focus is still "current" after the event loop
+    // tick — if another focus event arrived in between, our
+    // mutation should be left alone.
     setTimeout(function () {
+      if (myToken !== focusToken) return;
+      // Re-apply in case the blur from a sibling briefly cleared
+      // state during rapid hover transitions.
+      applyFocus(el);
+    }, 0);
+  }
+
+  function onPhraseBlur(e) {
+    var myToken = focusToken;
+    var el = e.currentTarget;
+    setTimeout(function () {
+      // If a newer focus event has arrived, do nothing.
+      if (myToken !== focusToken) return;
+      // If focus is still on a phrase (keyboard tab navigation),
+      // hand the focus state to wherever focus actually is.
       var active = document.activeElement;
       if (
         active &&
@@ -243,30 +406,92 @@
         active.classList.contains("phrase") &&
         stack.contains(active)
       ) {
+        applyFocus(active);
         return;
       }
-      stack.querySelectorAll(".line").forEach(function (line) {
-        line.classList.remove("has-focus");
-      });
-      stack.querySelectorAll(".phrase").forEach(function (p) {
-        p.classList.remove("is-focus-self");
-      });
+      // If the mouse is hovered over another phrase (mouseenter
+      // may have fired blur without firing focus on the same
+      // element), check elementFromPoint at the cursor.
+      if (
+        e && e.relatedTarget &&
+        e.relatedTarget.classList &&
+        e.relatedTarget.classList.contains("phrase") &&
+        stack.contains(e.relatedTarget)
+      ) {
+        applyFocus(e.relatedTarget);
+        return;
+      }
+      clearFocus();
     }, 0);
   }
 
-  function init() {
-    var totalAcross = lessons.reduce(function (n, l) { return n + l.cards.length; }, 0);
-    var cardNum = 0;
-    lessons.forEach(function (lesson) {
-      lesson.cards.forEach(function (card) {
-        cardNum += 1;
-        stack.appendChild(renderCard(lesson, card, cardNum, totalAcross));
-      });
-    });
+  /* ---------------------------------------------------------
+     Section C — Google Translate: a single reusable tab
+     ---------------------------------------------------------
+     We open translate.google.com directly with a fixed window
+     name. The browser reuses the same tab for subsequent calls
+     with the same name, so the user always sees exactly one
+     translate tab regardless of how many times they click.
 
-    // Wire the font-size slider to the --card-size custom property so
-    // every card scales together. Persist the user's choice so a
-    // reload keeps their preferred reading size.
+     Why no shim? We previously routed through a same-origin
+     translate.html to bypass popup blockers, but a fixed window
+     name plus direct URL is enough for the browser to reuse
+     the tab and stay on the popup-blocker safe side.
+     --------------------------------------------------------- */
+  var GT_WINDOW_NAME = "lc-gt-window";
+
+  function buildTranslateUrl(query, lesson) {
+    var sl = lesson.translate.sl;
+    var tl = lesson.translate.tl;
+    return (
+      "https://translate.google.com/?sl=" + sl +
+      "&tl=" + tl +
+      "&text=" + encodeURIComponent(query) +
+      "&op=translate"
+    );
+  }
+
+  function openInTranslateTab(query, lesson) {
+    query = (query || "").trim();
+    if (!query || !lesson || !lesson.translate) return;
+    var url = buildTranslateUrl(query, lesson);
+    // Same name → browser navigates the existing tab if open,
+    // otherwise opens a fresh one. Always exactly one tab.
+    window.open(url, GT_WINDOW_NAME);
+  }
+
+  /* ---------------------------------------------------------
+     Section D — Active-lesson rendering
+     --------------------------------------------------------- */
+
+  function renderActiveLesson() {
+    var id = getActiveLessonId();
+    var lesson = lessons.find(function (l) { return l.id === id; });
+    // Reset palette so slot assignment is consistent within the
+    // active lesson only (slots are document-order, not lesson-
+    // global — keeps cross-highlighting meaningful).
+    slotByGroupId = Object.create(null);
+    slotCursor = 0;
+    stack.innerHTML = "";
+    if (!lesson) return;
+    lesson.cards.forEach(function (card) {
+      stack.appendChild(renderCard(lesson, card));
+    });
+    // Reflect the new active lesson in the dropdown (in case it
+    // was triggered by sidebar click rather than select change).
+    var select = document.querySelector("[data-lesson-select]");
+    if (select && select.value !== lesson.id) {
+      select.value = lesson.id;
+    }
+  }
+
+  /* ---------------------------------------------------------
+     Section E — Display controls wiring (toolbar)
+     --------------------------------------------------------- */
+
+  function wireDisplayControls() {
+    // Font-size slider — writes --card-size so every card scales
+    // together. Persisted in localStorage.
     var fontInput = document.getElementById("font-size");
     if (fontInput) {
       var sizeOut = document.querySelector(".size-value");
@@ -286,10 +511,9 @@
       });
     }
 
-    // Wire the "plain text" checkbox. When checked, the card region
-    // gets data-plain="on", which strips every phrase mark so the
-    // Turkish and Bengali lines read as one continuous stream of
-    // normal text. The choice is persisted in localStorage.
+    // Plain text checkbox — toggles data-plain on the card region,
+    // stripping every phrase mark so the line reads as one stream
+    // of normal text. Persisted in localStorage.
     var cardRegion = document.querySelector(".card-region");
     var plainInput = document.getElementById("plain-text");
     if (plainInput && cardRegion) {
@@ -307,6 +531,148 @@
         applyPlain(plainInput.checked);
       });
     }
+
+    // Lesson selector (mobile) — same handler as sidebar click.
+    var select = document.querySelector("[data-lesson-select]");
+    if (select) {
+      select.addEventListener("change", function () {
+        setActiveLesson(select.value);
+      });
+    }
+  }
+
+  /* ---------------------------------------------------------
+     Section F — Landing page + hash routing
+     ---------------------------------------------------------
+     The GitHub Pages URL has two modes:
+       1. /                       → landing page listing all
+                                     languages and lessons.
+       2. /#/<language>/<lesson>  → the lesson view, with the
+                                     matched lesson preselected.
+     The hash form means we don't need a server-side router; the
+     same static index.html serves both. Switching lessons from
+     the sidebar updates the hash so the URL is shareable.
+     --------------------------------------------------------- */
+
+  function findLessonByPath(path) {
+    if (!path) return null;
+    return lessons.find(function (l) { return l.path === path; }) || null;
+  }
+
+  function renderLanding() {
+    var container = document.querySelector("[data-landing-list]");
+    if (!container) return;
+    container.innerHTML = "";
+
+    // Group lessons by language. Lessons missing a `language` field
+    // fall under "Other".
+    var groups = {};
+    lessons.forEach(function (lesson) {
+      var lang = lesson.language || "Other";
+      if (!groups[lang]) groups[lang] = [];
+      groups[lang].push(lesson);
+    });
+
+    var langNames = Object.keys(groups).sort();
+    langNames.forEach(function (lang) {
+      var section = document.createElement("section");
+      section.className = "lang-group";
+
+      var h2 = document.createElement("h2");
+      h2.className = "lang-group-title";
+      h2.textContent = lang;
+      section.appendChild(h2);
+
+      var grid = document.createElement("div");
+      grid.className = "lang-grid";
+
+      groups[lang].forEach(function (lesson) {
+        var a = document.createElement("a");
+        a.className = "lesson-card";
+        a.href = "#/" + (lesson.path || (lesson.language || "").toLowerCase() + "/" + lesson.id);
+        a.setAttribute("data-lesson-id", lesson.id);
+
+        var title = document.createElement("span");
+        title.className = "lesson-card-title";
+        title.textContent = lesson.title || lesson.id;
+        a.appendChild(title);
+
+        if (lesson.short && lesson.short !== lesson.title) {
+          var short = document.createElement("span");
+          short.className = "lesson-card-short";
+          short.textContent = lesson.short;
+          a.appendChild(short);
+        }
+
+        if (lesson.summary) {
+          var sum = document.createElement("p");
+          sum.className = "lesson-card-summary";
+          sum.textContent = lesson.summary;
+          a.appendChild(sum);
+        }
+
+        var meta = document.createElement("span");
+        meta.className = "lesson-card-meta";
+        var src = lesson.source && lesson.source.label;
+        var tgt = lesson.target && lesson.target.label;
+        if (src && tgt) {
+          meta.textContent = src + " → " + tgt;
+        }
+        if (lesson.cards && lesson.cards.length) {
+          meta.textContent += " · " + lesson.cards.length + " cards";
+        }
+        a.appendChild(meta);
+
+        grid.appendChild(a);
+      });
+
+      section.appendChild(grid);
+      container.appendChild(section);
+    });
+  }
+
+  function showLanding() {
+    var landing = document.querySelector("[data-landing]");
+    var app = document.querySelector("[data-app-main]");
+    if (landing) landing.hidden = false;
+    if (app) app.hidden = true;
+    document.body.setAttribute("data-view", "landing");
+  }
+
+  function showLesson() {
+    var landing = document.querySelector("[data-landing]");
+    var app = document.querySelector("[data-app-main]");
+    if (landing) landing.hidden = true;
+    if (app) app.hidden = false;
+    document.body.setAttribute("data-view", "lesson");
+  }
+
+  function applyRouteFromHash() {
+    var raw = (location.hash || "").replace(/^#\/?/, "");
+    if (!raw) {
+      showLanding();
+      return;
+    }
+    var lesson = findLessonByPath(raw);
+    if (!lesson) {
+      // Unknown lesson path — fall back to landing page.
+      showLanding();
+      return;
+    }
+    showLesson();
+    // Update the active lesson without re-pushing the hash.
+    setActiveLesson(lesson.id, { skipHash: true });
+  }
+
+  /* ---------------------------------------------------------
+     Section G — Init
+     --------------------------------------------------------- */
+
+  function init() {
+    renderLanding();
+    wireDisplayControls();
+    applyRouteFromHash();
+    window.addEventListener("hashchange", applyRouteFromHash);
   }
 
   if (document.readyState === "loading") {

@@ -177,36 +177,92 @@ kbd {
   outline: 3px solid var(--focus);
 }
 
-/* Sidebar (left rail) — holds display controls like the text-size slider. */
+/* Sidebar (left rail) — lesson list. Shares the body background
+   so it sits in the same canvas as the page rather than as a
+   separate panel. */
 .app-sidebar {
   display: flex;
   flex-direction: column;
   gap: 12px;
   padding: 16px 12px;
   border-inline-end: 1px solid var(--rule);
-  background: var(--surface);
+  background: var(--bg);
 }
 
+.sidebar-title {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  font-weight: 600;
+}
+
+.lesson-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.lesson-item {
+  display: block;
+  inline-size: 100%;
+  text-align: start;
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink-soft);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  cursor: pointer;
+  transition: color 120ms ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.lesson-item:hover {
+  color: var(--ink);
+}
+.lesson-item:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+.lesson-item.is-active,
+.lesson-item[aria-current="page"] {
+  color: var(--ink);
+  font-weight: 600;
+  background: var(--surface-soft);
+  border-radius: 8px;
+}
+
+/* Display controls — now live inside the floating toolbar, in a
+   horizontal row. */
 .size-control {
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 6px;
-  font-size: 12px;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
   color: var(--ink-soft);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 .size-control input[type="range"] {
-  inline-size: 100%;
+  inline-size: 120px;
   accent-color: var(--accent);
 }
 .size-control .size-value {
-  font-size: 12px;
+  font-size: 11px;
   letter-spacing: 0;
   text-transform: none;
   color: var(--ink-mute);
-  text-align: center;
+  min-inline-size: 32px;
+  text-align: end;
 }
 
 .check-control {
@@ -214,7 +270,7 @@ kbd {
   flex-direction: row;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--ink-soft);
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -230,6 +286,33 @@ kbd {
 }
 .check-control .check-label {
   color: var(--ink-soft);
+}
+
+.lesson-select-control {
+  display: none; /* hidden on desktop; shown on mobile via media query */
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--ink-soft);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.lesson-select-control select {
+  font: inherit;
+  font-size: 13px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--ink);
+  background: var(--surface-soft);
+  border: 1px solid var(--rule-strong);
+  border-radius: 8px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+.lesson-select-control select:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
 }
 
 button.ghost,
@@ -276,11 +359,33 @@ button[aria-pressed="true"] {
   min-block-size: 100vh;
 }
 
+/* "Back to all lessons" link shown at the top of the lesson view. */
+.home-link {
+  position: absolute;
+  inset-block-start: 12px;
+  inset-inline-start: 12px;
+  z-index: 5;
+  font-size: 13px;
+  color: var(--ink-soft);
+  text-decoration: none;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  transition: background 120ms ease, color 120ms ease;
+}
+.home-link:hover {
+  background: var(--surface-soft);
+  color: var(--ink);
+}
+
 .app-sidebar {
   position: sticky;
   inset-block-start: 0;
   align-self: start;
   min-block-size: 100vh;
+  inline-size: 220px;
+  overflow-y: auto;
 }
 
 .card-region {
@@ -357,9 +462,9 @@ button[aria-pressed="true"] {
   user-select: none;
 }
 
-.meaning-bn {
+.meaning-tg {
   color: var(--ink);
-  font-family: var(--font-bn);
+  font-family: var(--target-font, var(--font-bn));
   font-weight: 500;
   font-style: normal;
 }
@@ -397,7 +502,7 @@ button[aria-pressed="true"] {
   font-family: var(--font-tr);
 }
 .line-target .line-text {
-  font-family: var(--font-bn);
+  font-family: var(--target-font, var(--font-bn));
 }
 
 /* Phrase tokens — non-color signaling is essential.
@@ -546,6 +651,34 @@ button[aria-pressed="true"] {
   }
 }
 
+/* Floating bottom-center toolbar — display controls live here
+   instead of in the sidebar. Sits above content with a soft
+   shadow and pill shape. */
+.toolbar {
+  position: fixed;
+  inset-inline-end: 0;
+  inset-inline-start: 0;
+  inset-block-end: 16px;
+  margin-inline: auto;
+  inline-size: max-content;
+  max-inline-size: calc(100vw - 24px);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 14px;
+  background: var(--surface);
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+  z-index: 50;
+}
+
+/* Leave room for the floating toolbar at the bottom of the card
+   region so the last card isn't hidden underneath. */
+.card-region {
+  padding-block-end: calc(clamp(20px, 4vw, 40px) + 72px);
+}
+
 /* Responsive */
 @media (max-width: 720px) {
   .app-main {
@@ -554,18 +687,22 @@ button[aria-pressed="true"] {
   .app-sidebar {
     position: static;
     min-block-size: auto;
+    inline-size: auto;
     border-inline-end: 0;
     border-block-end: 1px solid var(--rule);
-    flex-direction: row;
-    align-items: center;
   }
-  .size-control {
-    flex-direction: row;
-    align-items: center;
-    gap: 10px;
-  }
-  .size-control input[type="range"] {
-    inline-size: 160px;
+  /* The sidebar lesson list is replaced by the toolbar's lesson
+     select on mobile, so the list itself is hidden — its title
+     too. */
+  .app-sidebar .lesson-list { display: none; }
+  .app-sidebar .sidebar-title { display: none; }
+
+  /* Floating toolbar now occupies the lesson-switching slot too. */
+  .toolbar .lesson-select-control { display: flex; }
+  .toolbar {
+    flex-wrap: wrap;
+    justify-content: center;
+    inset-block-end: 10px;
   }
 }
 
@@ -580,4 +717,150 @@ button[aria-pressed="true"] {
   .progress-track {
     inline-size: 110px;
   }
+  /* Smaller toolbar on very narrow screens. */
+  .toolbar {
+    padding: 6px 10px;
+    gap: 8px;
+    inset-inline-start: 12px;
+    inset-inline-end: 12px;
+    inline-size: auto;
+    max-inline-size: none;
+  }
+  .size-control input[type="range"] {
+    inline-size: 90px;
+  }
+}
+
+/* Sentence-level translate button that sits on the right side of
+   the Turkish line. The line text is wrapped in a flex container
+   so the button is pushed to the trailing edge with a small gap. */
+.line-body {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  inline-size: 100%;
+  min-inline-size: 0;
+}
+.line-body > .line-text {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+}
+
+.gt-sentence {
+  flex: 0 0 auto;
+  margin-inline-start: 0;
+  padding: 3px 10px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--surface);
+  border: 1px solid var(--ink);
+  cursor: pointer;
+  transition: transform 80ms ease, background 120ms ease;
+  white-space: nowrap;
+  display: inline-block;
+  text-decoration: none;
+}
+.gt-sentence:hover {
+  transform: translateY(-1px);
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+.gt-sentence:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+  color: var(--surface);
+}
+
+/* Landing page — shown at /. Lists every language and its
+   lessons as deep-link cards. */
+.landing {
+  max-inline-size: 960px;
+  margin-inline: auto;
+  padding: clamp(24px, 5vw, 56px) clamp(20px, 4vw, 40px);
+  display: grid;
+  gap: 32px;
+}
+.landing-head {
+  display: grid;
+  gap: 8px;
+}
+.landing-title {
+  margin: 0;
+  font-size: clamp(28px, 4vw, 40px);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.landing-sub {
+  margin: 0;
+  font-size: 16px;
+  color: var(--ink-soft);
+  max-inline-size: 60ch;
+}
+.landing-list {
+  display: grid;
+  gap: 28px;
+}
+.lang-group {
+  display: grid;
+  gap: 12px;
+}
+.lang-group-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
+.lang-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+.lesson-card {
+  display: grid;
+  gap: 6px;
+  padding: 18px 20px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  text-decoration: none;
+  color: var(--ink);
+  transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+}
+.lesson-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+  border-color: var(--rule-strong);
+}
+.lesson-card:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.lesson-card-title {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.lesson-card-short {
+  font-size: 13px;
+  color: var(--ink-mute);
+  letter-spacing: 0.04em;
+}
+.lesson-card-summary {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+  line-height: 1.45;
+}
+.lesson-card-meta {
+  font-size: 12px;
+  color: var(--ink-mute);
+  margin-block-start: 4px;
 }
