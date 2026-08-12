@@ -51,6 +51,9 @@
       (function () {
         var container = document.querySelector('[data-landing-list]');
         if (!container || !Array.isArray(window.LC_LESSONS)) return;
+        // Tell app.js we've already populated this container so
+        // its auto-init doesn't clobber our work with the default.
+        container.setAttribute('data-rendered', 'landing');
         var groups = {};
         window.LC_LESSONS.forEach(function (lesson) {
           var lang = lesson.language || 'Other';

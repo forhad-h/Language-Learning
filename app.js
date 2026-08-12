@@ -90,14 +90,19 @@
      Section B — Generic card renderer (lesson-agnostic)
      --------------------------------------------------------- */
 
-  var stack = document.querySelector("[data-card-stack]");
-  if (!stack) return;
-
   // Map group-id → palette slot (1..7), assigned in document order
   // so the first phrase on the page uses slot 1, the second slot 2,
   // and so on. Repeats reuse the same slot.
   var slotByGroupId = Object.create(null);
   var slotCursor = 0;
+  // Lazy card-stack lookup. Resolved on first card render so that
+  // landing pages (which have no [data-card-stack]) don't force the
+  // IIFE to short-circuit before reaching LC_renderLanding.
+  var stack = null;
+  function getStack() {
+    if (!stack) stack = document.querySelector("[data-card-stack]");
+    return stack;
+  }
   function slotFor(groupId) {
     if (!slotByGroupId[groupId]) {
       slotCursor = (slotCursor % 7) + 1;
@@ -350,10 +355,12 @@
   }
 
   function clearFocus() {
-    stack.querySelectorAll(".line").forEach(function (line) {
+    var stk = getStack();
+    if (!stk) return;
+    stk.querySelectorAll(".line").forEach(function (line) {
       line.classList.remove("has-focus");
     });
-    stack.querySelectorAll(".phrase").forEach(function (p) {
+    stk.querySelectorAll(".phrase").forEach(function (p) {
       p.classList.remove("is-focus-self");
     });
   }
@@ -382,11 +389,12 @@
       // If focus is still on a phrase (keyboard tab navigation),
       // hand the focus state to wherever focus actually is.
       var active = document.activeElement;
+      var stk = getStack();
       if (
         active &&
         active.classList &&
         active.classList.contains("phrase") &&
-        stack.contains(active)
+        stk && stk.contains(active)
       ) {
         applyFocus(active);
         return;
@@ -398,7 +406,7 @@
         e && e.relatedTarget &&
         e.relatedTarget.classList &&
         e.relatedTarget.classList.contains("phrase") &&
-        stack.contains(e.relatedTarget)
+        stk && stk.contains(e.relatedTarget)
       ) {
         applyFocus(e.relatedTarget);
         return;
@@ -449,15 +457,17 @@
   function renderActiveLesson() {
     var id = getActiveLessonId();
     var lesson = lessons.find(function (l) { return l.id === id; });
+    var stk = getStack();
+    if (!stk) return;
     // Reset palette so slot assignment is consistent within the
     // active lesson only (slots are document-order, not lesson-
     // global — keeps cross-highlighting meaningful).
     slotByGroupId = Object.create(null);
     slotCursor = 0;
-    stack.innerHTML = "";
+    stk.innerHTML = "";
     if (!lesson) return;
     lesson.cards.forEach(function (card) {
-      stack.appendChild(renderCard(lesson, card));
+      stk.appendChild(renderCard(lesson, card));
     });
     // Reflect the new active lesson in the dropdown (in case it
     // was triggered by sidebar click rather than select change).
@@ -566,9 +576,15 @@
       // Pages that want a custom landing renderer can call
       // window.LC_renderLanding(opts) themselves; otherwise we
       // fall back to a sensible default: render the registered
-      // lessons into [data-landing-list].
-      var hasContainer = document.querySelector("[data-landing-list]");
-      if (hasContainer && typeof window.LC_renderLanding === "function") {
+      // lessons into [data-landing-list]. Skip the fallback if
+      // the page's inline script already populated the
+      // container (signalled via data-rendered="landing").
+      var landingContainer = document.querySelector("[data-landing-list]");
+      if (
+        landingContainer &&
+        landingContainer.getAttribute("data-rendered") !== "landing" &&
+        typeof window.LC_renderLanding === "function"
+      ) {
         window.LC_renderLanding();
       }
       wireDisplayControls();
@@ -603,6 +619,9 @@
     opts = opts || {};
     var container = document.querySelector(opts.container || "[data-landing-list]");
     if (!container || !Array.isArray(window.LC_LESSONS)) return;
+    // Mark this container as having been populated by an explicit
+    // call so init()'s default fallback won't clobber it.
+    container.setAttribute("data-rendered", "landing");
     container.innerHTML = "";
     var resolveHref = opts.resolveHref || function (lesson) {
       return (lesson.path ? lesson.path + ".html" : lesson.id + ".html");
