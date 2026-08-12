@@ -1,58 +1,7 @@
-/* eslint-disable */
-/*
- * Turkish/lessons/yapmak-etmek.js — Lesson content only.
- *
- * Folder layout: <Language>/lessons/<lesson-id>.js. Each language
- * gets its own top-level folder so the project scales naturally
- * as new languages are added.
- *
- * Each lesson file registers itself via window.LC_LESSONS.push(...).
- * To add a new lesson:
- *   1. Create <Language>/lessons/<id>.js following this schema.
- *   2. Add <script src="<Language>/lessons/<id>.js"></script> to
- *      index.html (after existing lesson scripts).
- *
- * Schema:
- *   {
- *     id:        "stable-id",
- *     language:  "Turkish",                  // display name
- *     path:      "turkish/yapmak-etmek",     // URL slug for the
- *                                            // hash router (#/<path>)
- *     title:     "Display Title",
- *     short:     "sidebar label (lowercase)",
- *     summary:   "one-line description",
- *     source:    { code, label, dir },
- *     target:    { code, label, dir },
- *     translate: { sl, tl },            // optional: enables the
- *                                       // sentence-level Translate
- *                                       // button on this lesson.
- *                                       // sl = source lang code,
- *                                       // tl = translation lang code.
- *     cards: [
- *       {
- *         id:        "card-id",
- *         expression: "Turkish phrase",
- *         meaning:    "English gloss",
- *         meaningBn:  "Bengali gloss",   // optional target gloss
- *         verb:       "yapmak",         // teaching label
- *         why:        "...",            // short language note
- *         groups: [
- *           { id, source, target, gloss, suffix?, targetSuffix?, targetSuffixPos? }
- *         ],
- *         unpaired: { source: ["."], target: ["।"] }
- *       }
- *     ]
- *   }
- *
- * The renderer (app.js) is fully lesson-agnostic. No language-specific
- * code lives here. Adding new languages means adding a file.
- */
-
 window.LC_LESSONS = window.LC_LESSONS || [];
 window.LC_LESSONS.push({
   id: "yapmak-etmek",
   language: "Turkish",
-  path: "turkish/yapmak-etmek",
   title: "Yapmak ve Etmek",
   short: "yapmak ve etmek",
   summary:

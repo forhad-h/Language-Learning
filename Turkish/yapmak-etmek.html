@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Yapmak ve Etmek · Language Cards</title>
+    <meta
+      name="description"
+      content="Yapmak vs Etmek — Turkish light-verb pair, paired with Bengali."
+    />
+    <link rel="stylesheet" href="../../styles.css" />
+  </head>
+  <body data-theme="soft" data-view="lesson" data-lesson="yapmak-etmek">
+    <a class="skip" href="#card-region">Skip to card</a>
+
+    <main class="app-main">
+      <a class="home-link" href="../../">All lessons</a>
+      <a class="home-link lang-link" href="../">Turkish</a>
+      <aside class="app-sidebar" aria-label="Lessons">
+        <ul class="lesson-list" data-lesson-list></ul>
+      </aside>
+
+      <section
+        id="card-region"
+        class="card-region"
+        aria-live="polite"
+        aria-labelledby="card-region-title"
+      >
+        <h2 id="card-region-title" class="visually-hidden">Lesson cards</h2>
+        <div class="card-stack" data-card-stack></div>
+      </section>
+    </main>
+
+    <div
+      class="toolbar"
+      data-toolbar
+      role="toolbar"
+      aria-label="Display controls"
+    >
+      <label class="size-control" title="Adjust card text size">
+        <span class="size-label">Text</span>
+        <input
+          id="font-size"
+          type="range"
+          min="18"
+          max="32"
+          step="1"
+          value="22"
+          aria-label="Card text size"
+        />
+        <output class="size-value" for="font-size" aria-hidden="true">22px</output>
+      </label>
+
+      <label class="check-control" title="Show sentences as plain text without any mark color">
+        <input
+          id="plain-text"
+          type="checkbox"
+          aria-label="Show sentences as plain text without any mark color"
+        />
+        <span class="check-label">Plain text</span>
+      </label>
+
+      <label class="lesson-select-control" title="Switch lesson">
+        <span class="size-label">Lesson</span>
+        <select
+          id="lesson-select"
+          class="lesson-select"
+          data-lesson-select
+          aria-label="Switch lesson"
+        ></select>
+      </label>
+    </div>
+
+    <!-- Lesson data — registers itself via
+         window.LC_LESSONS.push(...). -->
+    <script src="lessons-data/yapmak-etmek.js"></script>
+    <script src="../../app.js"></script>
+  </body>
+</html>

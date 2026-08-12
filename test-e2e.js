@@ -80,7 +80,7 @@ document.body.textContent = 'Stub: ' + location.search;
     });
   });
 
-  await page.goto(`http://localhost:${PORT}/index.html#/turkish/yapmak-etmek`, { waitUntil: 'networkidle' });
+  await page.goto(`http://localhost:${PORT}/Turkish/yapmak-etmek.html`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(300);
 
   let totalClicks = 0;

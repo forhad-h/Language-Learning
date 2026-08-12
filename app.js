@@ -42,30 +42,12 @@
     return lessons[0] ? lessons[0].id : null;
   }
 
-  function setActiveLesson(id, opts) {
-    opts = opts || {};
+  function setActiveLesson(id) {
     if (!lessons.some(function (l) { return l.id === id; })) return;
     try { window.localStorage.setItem(LS_ACTIVE, id); } catch (e) {}
     document.body.setAttribute("data-active-lesson", id);
     renderRegistry(id);
     renderActiveLesson();
-    // Sync the URL hash so the lesson is deep-linkable. Skip the
-    // hash update when navigating to the active lesson that's
-    // already reflected in the URL — avoids creating history
-    // entries on every sidebar click.
-    if (!opts.skipHash) {
-      var lesson = lessons.find(function (l) { return l.id === id; });
-      var hash = lesson && lesson.path ? "#/" + lesson.path : "";
-      if (location.hash !== hash) {
-        if (hash) {
-          location.hash = hash;
-        } else {
-          // Removing the hash to return to landing page — use
-          // replaceState so we don't pollute history.
-          history.replaceState(null, "", location.pathname + location.search);
-        }
-      }
-    }
   }
 
   function renderRegistry(activeId) {
@@ -542,126 +524,25 @@
   }
 
   /* ---------------------------------------------------------
-     Section F — Landing page + hash routing
+     Section F — Page-level rendering (real paths, no hash)
      ---------------------------------------------------------
-     The GitHub Pages URL has two modes:
-       1. /                       → landing page listing all
-                                     languages and lessons.
-       2. /#/<language>/<lesson>  → the lesson view, with the
-                                     matched lesson preselected.
-     The hash form means we don't need a server-side router; the
-     same static index.html serves both. Switching lessons from
-     the sidebar updates the hash so the URL is shareable.
+     Each HTML page declares its intent via attributes on <body>:
+       - data-view="landing"            → render the lesson list.
+       - data-view="lesson"             → render the lesson view.
+       - data-lesson="<lesson-id>"      → which lesson to show
+                                            (only used when
+                                            data-view="lesson").
+     Switching lessons from the sidebar navigates to the new
+     lesson's HTML file via a plain link click — the URL is the
+     source of truth, no JavaScript routing needed.
      --------------------------------------------------------- */
 
-  function findLessonByPath(path) {
-    if (!path) return null;
-    return lessons.find(function (l) { return l.path === path; }) || null;
-  }
-
-  function renderLanding() {
-    var container = document.querySelector("[data-landing-list]");
-    if (!container) return;
-    container.innerHTML = "";
-
-    // Group lessons by language. Lessons missing a `language` field
-    // fall under "Other".
-    var groups = {};
-    lessons.forEach(function (lesson) {
-      var lang = lesson.language || "Other";
-      if (!groups[lang]) groups[lang] = [];
-      groups[lang].push(lesson);
-    });
-
-    var langNames = Object.keys(groups).sort();
-    langNames.forEach(function (lang) {
-      var section = document.createElement("section");
-      section.className = "lang-group";
-
-      var h2 = document.createElement("h2");
-      h2.className = "lang-group-title";
-      h2.textContent = lang;
-      section.appendChild(h2);
-
-      var grid = document.createElement("div");
-      grid.className = "lang-grid";
-
-      groups[lang].forEach(function (lesson) {
-        var a = document.createElement("a");
-        a.className = "lesson-card";
-        a.href = "#/" + (lesson.path || (lesson.language || "").toLowerCase() + "/" + lesson.id);
-        a.setAttribute("data-lesson-id", lesson.id);
-
-        var title = document.createElement("span");
-        title.className = "lesson-card-title";
-        title.textContent = lesson.title || lesson.id;
-        a.appendChild(title);
-
-        if (lesson.short && lesson.short !== lesson.title) {
-          var short = document.createElement("span");
-          short.className = "lesson-card-short";
-          short.textContent = lesson.short;
-          a.appendChild(short);
-        }
-
-        if (lesson.summary) {
-          var sum = document.createElement("p");
-          sum.className = "lesson-card-summary";
-          sum.textContent = lesson.summary;
-          a.appendChild(sum);
-        }
-
-        var meta = document.createElement("span");
-        meta.className = "lesson-card-meta";
-        var src = lesson.source && lesson.source.label;
-        var tgt = lesson.target && lesson.target.label;
-        if (src && tgt) {
-          meta.textContent = src + " → " + tgt;
-        }
-        if (lesson.cards && lesson.cards.length) {
-          meta.textContent += " · " + lesson.cards.length + " cards";
-        }
-        a.appendChild(meta);
-
-        grid.appendChild(a);
-      });
-
-      section.appendChild(grid);
-      container.appendChild(section);
-    });
-  }
-
-  function showLanding() {
-    var landing = document.querySelector("[data-landing]");
-    var app = document.querySelector("[data-app-main]");
-    if (landing) landing.hidden = false;
-    if (app) app.hidden = true;
-    document.body.setAttribute("data-view", "landing");
-  }
-
-  function showLesson() {
-    var landing = document.querySelector("[data-landing]");
-    var app = document.querySelector("[data-app-main]");
-    if (landing) landing.hidden = true;
-    if (app) app.hidden = false;
-    document.body.setAttribute("data-view", "lesson");
-  }
-
-  function applyRouteFromHash() {
-    var raw = (location.hash || "").replace(/^#\/?/, "");
-    if (!raw) {
-      showLanding();
-      return;
+  function getRequestedLessonId() {
+    var explicit = document.body.getAttribute("data-lesson");
+    if (explicit && lessons.some(function (l) { return l.id === explicit; })) {
+      return explicit;
     }
-    var lesson = findLessonByPath(raw);
-    if (!lesson) {
-      // Unknown lesson path — fall back to landing page.
-      showLanding();
-      return;
-    }
-    showLesson();
-    // Update the active lesson without re-pushing the hash.
-    setActiveLesson(lesson.id, { skipHash: true });
+    return lessons[0] ? lessons[0].id : null;
   }
 
   /* ---------------------------------------------------------
@@ -669,11 +550,105 @@
      --------------------------------------------------------- */
 
   function init() {
-    renderLanding();
-    wireDisplayControls();
-    applyRouteFromHash();
-    window.addEventListener("hashchange", applyRouteFromHash);
+    var view = document.body.getAttribute("data-view") || "auto";
+    if (view === "lesson") {
+      var id = getRequestedLessonId();
+      if (id) {
+        try { window.localStorage.setItem(LS_ACTIVE, id); } catch (e) {}
+        document.body.setAttribute("data-active-lesson", id);
+        renderRegistry(id);
+        renderActiveLesson();
+        wireDisplayControls();
+      }
+      return;
+    }
+    if (view === "landing") {
+      // Pages that want a custom landing renderer can call
+      // window.LC_renderLanding(opts) themselves; otherwise we
+      // fall back to a sensible default: render the registered
+      // lessons into [data-landing-list].
+      var hasContainer = document.querySelector("[data-landing-list]");
+      if (hasContainer && typeof window.LC_renderLanding === "function") {
+        window.LC_renderLanding();
+      }
+      wireDisplayControls();
+      return;
+    }
+    // Auto mode: pick lesson view if there's a card stack,
+    // landing if there's a list.
+    if (document.querySelector("[data-card-stack]")) {
+      document.body.setAttribute("data-view", "lesson");
+      init();
+      return;
+    }
+    if (document.querySelector("[data-landing-list]")) {
+      document.body.setAttribute("data-view", "landing");
+      init();
+      return;
+    }
   }
+
+  // Expose minimal helpers so HTML pages can drive the renderer
+  // directly. Each page declares its intent via a `data-view`
+  // attribute on <body>:
+  //   - data-view="landing"   → render the landing page from
+  //                              the registered lessons.
+  //   - data-view="lesson"    → render the lesson view; the
+  //                              lesson id is taken from the
+  //                              `data-lesson` attribute on body
+  //                              or from window.LC_LESSONS[0].
+  // The auto-init runs once at DOMContentLoaded and dispatches
+  // based on those attributes.
+  window.LC_renderLanding = function (opts) {
+    opts = opts || {};
+    var container = document.querySelector(opts.container || "[data-landing-list]");
+    if (!container || !Array.isArray(window.LC_LESSONS)) return;
+    container.innerHTML = "";
+    var resolveHref = opts.resolveHref || function (lesson) {
+      return (lesson.path ? lesson.path + ".html" : lesson.id + ".html");
+    };
+    window.LC_LESSONS.forEach(function (lesson) {
+      var a = document.createElement("a");
+      a.className = "lesson-card";
+      a.href = resolveHref(lesson);
+      var t = document.createElement("span");
+      t.className = "lesson-card-title";
+      t.textContent = lesson.title || lesson.id;
+      a.appendChild(t);
+      if (lesson.short && lesson.short !== lesson.title) {
+        var s = document.createElement("span");
+        s.className = "lesson-card-short";
+        s.textContent = lesson.short;
+        a.appendChild(s);
+      }
+      if (lesson.summary) {
+        var p = document.createElement("p");
+        p.className = "lesson-card-summary";
+        p.textContent = lesson.summary;
+        a.appendChild(p);
+      }
+      var meta = document.createElement("span");
+      meta.className = "lesson-card-meta";
+      if (lesson.source && lesson.source.label && lesson.target && lesson.target.label) {
+        meta.textContent = lesson.source.label + " → " + lesson.target.label;
+      }
+      if (lesson.cards && lesson.cards.length) {
+        meta.textContent += " · " + lesson.cards.length + " cards";
+      }
+      a.appendChild(meta);
+      container.appendChild(a);
+    });
+  };
+
+  // Expose a helper that lesson HTML pages can call after both
+  // data and app.js have loaded, to set the active lesson before
+  // rendering. Pass null/undefined to fall back to the first
+  // registered lesson.
+  window.LC_setActiveLesson = function (id) {
+    if (id && lessons.some(function (l) { return l.id === id; })) {
+      try { window.localStorage.setItem(LS_ACTIVE, id); } catch (e) {}
+    }
+  };
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init);

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Turkish · Language Cards</title>
+    <meta
+      name="description"
+      content="Turkish lessons for Language Cards."
+    />
+    <link rel="stylesheet" href="../styles.css" />
+  </head>
+  <body data-theme="soft" data-view="landing">
+    <a class="home-link" href="../">All lessons</a>
+
+    <main class="landing">
+      <header class="landing-head">
+        <h1 class="landing-title">Turkish</h1>
+        <p class="landing-sub">
+          Lessons for Turkish, paired with translations and aligned
+          word-by-word so you can see exactly how meaning shifts
+          across languages.
+        </p>
+      </header>
+      <section
+        class="landing-list"
+        data-landing-list
+        aria-label="Turkish lessons"
+      ></section>
+    </main>
+
+    <!-- Each lesson file registers itself via
+         window.LC_LESSONS.push(...). To add a lesson, drop a
+         lessons-data/<id>.js and add a <script> tag below. -->
+    <script src="lessons-data/yapmak-etmek.js"></script>
+    <script src="../app.js"></script>
+    <script>
+      // Render the landing list using the registered lessons.
+      if (typeof window.LC_renderLanding === 'function') {
+        window.LC_renderLanding({
+          container: '[data-landing-list]',
+          linkBase: './',
+          // For each lesson, link to ./<id>.html
+          resolveHref: function (lesson) {
+            return './' + lesson.id + '.html';
+          }
+        });
+      }
+    </script>
+  </body>
+</html>

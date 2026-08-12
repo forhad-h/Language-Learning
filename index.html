@@ -6,104 +6,87 @@
     <title>Language Cards</title>
     <meta
       name="description"
-      content="A small, accessible language-learning playground. Lessons live under each language's folder and register themselves."
+      content="A small, accessible language-learning playground. Pick a language to start."
     />
     <link rel="stylesheet" href="styles.css" />
   </head>
-  <body data-theme="soft">
-    <a class="skip" href="#card-region">Skip to card</a>
-
-    <!-- Landing page: shown when the URL has no hash. Lists every
-         language and its lessons as deep-link cards. Hidden when a
-         hash route is active. -->
-    <main class="landing" data-landing hidden>
+  <body data-theme="soft" data-view="landing">
+    <main class="landing">
       <header class="landing-head">
         <h1 class="landing-title">Language Cards</h1>
         <p class="landing-sub">
-          Pick a lesson to start. Each lesson pairs a source language
-          with a target translation and highlights word-level alignments.
+          Pick a language to see its lessons. Each lesson pairs a
+          source language with a target translation and highlights
+          word-level alignments.
         </p>
       </header>
-      <section class="landing-list" data-landing-list aria-label="Available lessons"></section>
-    </main>
-
-    <!-- Lesson view: shown when a hash route like
-         #/turkish/yapmak-etmek is active. Hidden on the landing
-         page. -->
-    <main class="app-main" data-app-main hidden>
-      <a class="home-link" href="./" data-home-link>← All lessons</a>
-      <aside class="app-sidebar" aria-label="Lessons">
-        <ul class="lesson-list" data-lesson-list></ul>
-      </aside>
-
       <section
-        id="card-region"
-        class="card-region"
-        aria-live="polite"
-        aria-labelledby="card-region-title"
-      >
-        <h2 id="card-region-title" class="visually-hidden">Lesson cards</h2>
-        <div class="card-stack" data-card-stack></div>
-      </section>
+        class="landing-list"
+        data-landing-list
+        aria-label="Available languages"
+      ></section>
     </main>
 
     <!--
-      Floating, bottom-center toolbar with display controls. The
-      font-size slider and plain-text checkbox moved out of the
-      sidebar. The lesson selector is visible only on mobile (CSS).
+      Each language folder has a lessons-data/ folder with one
+      JS file per lesson. To add a new language, drop a folder
+      named <Language>/ with its own lessons-data/<id>.js files
+      and add a <script> tag below pointing to the language's
+      manifest.
+
+      To add a lesson to an existing language, drop the JS file
+      in that language's lessons-data/ folder and add a <script>
+      tag inside that language's index.html.
+
+      To keep this landing in sync without editing this file for
+      every new language, the landing auto-discovers lessons by
+      reading every language's index.html. Each language page
+      registers its lessons via window.LC_LESSONS.
     -->
-    <div
-      class="toolbar"
-      data-toolbar
-      role="toolbar"
-      aria-label="Display controls"
-    >
-      <label class="size-control" title="Adjust card text size">
-        <span class="size-label">Text</span>
-        <input
-          id="font-size"
-          type="range"
-          min="18"
-          max="32"
-          step="1"
-          value="22"
-          aria-label="Card text size"
-        />
-        <output class="size-value" for="font-size" aria-hidden="true">22px</output>
-      </label>
-
-      <label class="check-control" title="Show sentences as plain text without any mark color">
-        <input
-          id="plain-text"
-          type="checkbox"
-          aria-label="Show sentences as plain text without any mark color"
-        />
-        <span class="check-label">Plain text</span>
-      </label>
-
-      <label class="lesson-select-control" title="Switch lesson">
-        <span class="size-label">Lesson</span>
-        <select
-          id="lesson-select"
-          class="lesson-select"
-          data-lesson-select
-          aria-label="Switch lesson"
-        ></select>
-      </label>
-    </div>
-
-    <!--
-      Lessons self-register via window.LC_LESSONS.push(). To add a
-      new lesson, drop a file under <Language>/lessons/ and add a
-      matching <script> tag below. Order matters — first script is
-      the default lesson.
-
-      Folder layout:
-        Turkish/lessons/yapmak-etmek.js
-        Spanish/lessons/...   (future)
-        Bengali/lessons/...   (future)
-    -->
-    <script src="Turkish/lessons/yapmak-etmek.js"></script>
+    <script src="Turkish/lessons-data/yapmak-etmek.js"></script>
     <script src="app.js"></script>
+    <script>
+      // Group registered lessons by language and render them as
+      // language cards that link to each language's landing page.
+      (function () {
+        var container = document.querySelector('[data-landing-list]');
+        if (!container || !Array.isArray(window.LC_LESSONS)) return;
+        var groups = {};
+        window.LC_LESSONS.forEach(function (lesson) {
+          var lang = lesson.language || 'Other';
+          if (!groups[lang]) groups[lang] = [];
+          groups[lang].push(lesson);
+        });
+        Object.keys(groups).sort().forEach(function (lang) {
+          var section = document.createElement('section');
+          section.className = 'lang-group';
+          var h2 = document.createElement('h2');
+          h2.className = 'lang-group-title';
+          h2.textContent = lang;
+          section.appendChild(h2);
+          var grid = document.createElement('div');
+          grid.className = 'lang-grid';
+          var a = document.createElement('a');
+          a.className = 'lesson-card';
+          // Language landing page lives at /<Language>/index.html.
+          var slug = lang.toLowerCase();
+          a.href = slug + '/';
+          var t = document.createElement('span');
+          t.className = 'lesson-card-title';
+          t.textContent = lang + ' · ' + groups[lang].length +
+            (groups[lang].length === 1 ? ' lesson' : ' lessons');
+          a.appendChild(t);
+          var sum = document.createElement('p');
+          sum.className = 'lesson-card-summary';
+          sum.textContent = groups[lang]
+            .map(function (l) { return l.title || l.id; })
+            .join(' · ');
+          a.appendChild(sum);
+          grid.appendChild(a);
+          section.appendChild(grid);
+          container.appendChild(section);
+        });
+      })();
+    </script>
   </body>
 </html>
