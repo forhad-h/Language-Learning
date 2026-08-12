@@ -1,0 +1,583 @@
+/* =========================================================
+   Language Cards — calm, accessible, RTL-ready styles
+   ---------------------------------------------------------
+   Design notes:
+   - Uses CSS custom properties so themes and palettes swap.
+   - Uses logical properties (inline-*, block-*) so future
+     RTL languages don't need a rewrite.
+   - Color is one signal among several: every phrase also
+     has a stable index marker and a synchronized focus
+     highlight, so meaning never depends on hue alone.
+   ========================================================= */
+
+:root {
+  --bg: #f5f4ef;
+  --surface: #ffffff;
+  --surface-soft: #faf8f2;
+  --ink: #1f2430;
+  --ink-soft: #4b5468;
+  --ink-mute: #6b7384;
+  --rule: #e6e2d6;
+  --rule-strong: #cdc6b3;
+  --accent: #2a5d9f;
+  --accent-ink: #ffffff;
+  --focus: #ffbf47;
+  --suffix: #d8392a;
+  --radius: 14px;
+  --shadow: 0 1px 0 rgba(31, 36, 48, 0.04),
+    0 10px 30px -18px rgba(31, 36, 48, 0.18);
+  --line-tight: 1.45;
+  --line-loose: 1.6;
+  --font-sans: "Inter", "Atkinson Hyperlegible", -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    sans-serif;
+  --font-bn: "Hind Siliguri", "Noto Sans Bengali", "Tiro Bangla",
+    var(--font-sans);
+  --font-tr: var(--font-sans);
+  --card-size: 22px;
+  --slot-count: 7;
+}
+
+/* Default "soft" palette — light tints on the surface, dark ink.
+   Each slot has two stops so we can both fill and outline. */
+[data-theme="soft"] {
+  --slot-1-bg: #fde2cf;
+  --slot-1-bd: #c87a3a;
+  --slot-2-bg: #d9ecda;
+  --slot-2-bd: #2f7a3e;
+  --slot-3-bg: #d6e4f5;
+  --slot-3-bd: #2a5d9f;
+  --slot-4-bg: #f4e1ee;
+  --slot-4-bd: #8a3f8b;
+  --slot-5-bg: #fff1c8;
+  --slot-5-bd: #9c7a14;
+  --slot-6-bg: #e0eef0;
+  --slot-6-bd: #3b7a86;
+  --slot-7-bg: #ece4f7;
+  --slot-7-bd: #5b4497;
+}
+
+/* Okabe-Ito-inspired, CVD-safe palette.
+   Same ink tones for contrast; hue set retuned for safety. */
+[data-theme="cvd"] {
+  --slot-1-bg: #f6d6a8;
+  --slot-1-bd: #c87100;
+  --slot-2-bg: #cfe6d4;
+  --slot-2-bd: #00684a;
+  --slot-3-bg: #c8dcef;
+  --slot-3-bd: #005f9e;
+  --slot-4-bg: #e6d6e2;
+  --slot-4-bd: #9a3a8a;
+  --slot-5-bg: #f5e8a3;
+  --slot-5-bd: #b59000;
+  --slot-6-bg: #cde2e6;
+  --slot-6-bd: #006c84;
+  --slot-7-bg: #d9d6ef;
+  --slot-7-bd: #4a44a0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="cvd"]):not([data-theme="soft"]) {
+    --bg: #16181d;
+    --surface: #1f2229;
+    --surface-soft: #252932;
+    --ink: #f1efe7;
+    --ink-soft: #c8cad2;
+    --ink-mute: #8c93a3;
+    --rule: #2e323c;
+    --rule-strong: #444a58;
+    --shadow: 0 1px 0 rgba(0, 0, 0, 0.2), 0 12px 30px -16px rgba(0, 0, 0, 0.6);
+    --suffix: #ff6a5a;
+  }
+  [data-theme="soft"] {
+    --slot-1-bg: #4a2b15;
+    --slot-1-bd: #f0a868;
+    --slot-2-bg: #1f3a26;
+    --slot-2-bd: #8fc59c;
+    --slot-3-bg: #1c2c45;
+    --slot-3-bd: #93b6e2;
+    --slot-4-bg: #3b1f3a;
+    --slot-4-bd: #d9a3d7;
+    --slot-5-bg: #3d3415;
+    --slot-5-bd: #f0d772;
+    --slot-6-bg: #1e3034;
+    --slot-6-bd: #92c8d2;
+    --slot-7-bg: #2a2648;
+    --slot-7-bd: #b9b1ee;
+  }
+  [data-theme="cvd"] {
+    --slot-1-bg: #43240f;
+    --slot-1-bd: #f0b374;
+    --slot-2-bg: #153225;
+    --slot-2-bd: #82c4a0;
+    --slot-3-bg: #15263e;
+    --slot-3-bd: #90b3df;
+    --slot-4-bg: #361830;
+    --slot-4-bd: #d39ed1;
+    --slot-5-bg: #3d3010;
+    --slot-5-bd: #ecdc7f;
+    --slot-6-bg: #142b30;
+    --slot-6-bd: #88c4ce;
+    --slot-7-bg: #232047;
+    --slot-7-bd: #b6abea;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: var(--line-loose);
+  min-block-size: 100vh;
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+}
+
+a {
+  color: var(--accent);
+}
+
+kbd {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  background: var(--surface-soft);
+  border: 1px solid var(--rule-strong);
+  border-bottom-width: 2px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.85em;
+  color: var(--ink-soft);
+}
+
+/* Skip link */
+.skip {
+  position: absolute;
+  inset-inline-start: 8px;
+  inset-block-start: -40px;
+  background: var(--ink);
+  color: var(--surface);
+  padding: 6px 10px;
+  border-radius: 6px;
+  text-decoration: none;
+  z-index: 1000;
+  transition: inset-block-start 120ms ease;
+}
+.skip:focus {
+  inset-block-start: 8px;
+  outline: 3px solid var(--focus);
+}
+
+/* Sidebar (left rail) — holds display controls like the text-size slider. */
+.app-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 12px;
+  border-inline-end: 1px solid var(--rule);
+  background: var(--surface);
+}
+
+.size-control {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink-soft);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.size-control input[type="range"] {
+  inline-size: 100%;
+  accent-color: var(--accent);
+}
+.size-control .size-value {
+  font-size: 12px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink-mute);
+  text-align: center;
+}
+
+.check-control {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ink-soft);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  user-select: none;
+}
+.check-control input[type="checkbox"] {
+  inline-size: 16px;
+  block-size: 16px;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.check-control .check-label {
+  color: var(--ink-soft);
+}
+
+button.ghost,
+button.primary {
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 999px;
+  padding: 8px 14px;
+  line-height: 1;
+  border: 1px solid var(--rule-strong);
+  background: var(--surface);
+  color: var(--ink);
+  transition: transform 80ms ease, background 120ms ease,
+    border-color 120ms ease, color 120ms ease;
+}
+button.primary {
+  background: var(--ink);
+  color: var(--surface);
+  border-color: var(--ink);
+}
+button:hover {
+  transform: translateY(-1px);
+}
+button:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+button[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+button[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+
+/* Main */
+.app-main {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  min-block-size: 100vh;
+}
+
+.app-sidebar {
+  position: sticky;
+  inset-block-start: 0;
+  align-self: start;
+  min-block-size: 100vh;
+}
+
+.card-region {
+  padding: clamp(20px, 4vw, 40px);
+  max-inline-size: 880px;
+}
+
+/* Accessible label-only heading */
+.visually-hidden {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Card stack — all cards on one page */
+.card-region {
+  display: block;
+}
+
+.card-stack {
+  display: grid;
+  gap: 18px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: clamp(18px, 3vw, 28px);
+  display: grid;
+  gap: 16px;
+}
+
+.card-head .kicker {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 11px;
+  color: var(--ink-mute);
+}
+.expression {
+  margin: 6px 0 6px;
+  font-size: calc(var(--card-size) + 10px);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  font-feature-settings: "ss01" on;
+}
+.meaning {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: calc(var(--card-size) - 2px);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0;
+}
+
+.meaning-en {
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
+.meaning-sep {
+  color: var(--ink-mute);
+  font-style: normal;
+  user-select: none;
+}
+
+.meaning-bn {
+  color: var(--ink);
+  font-family: var(--font-bn);
+  font-weight: 500;
+  font-style: normal;
+}
+
+.sentences {
+  display: grid;
+  gap: 6px;
+  padding-block: 4px;
+}
+
+.line {
+  display: grid;
+  grid-template-columns: minmax(72px, max-content) 1fr;
+  gap: 16px;
+  align-items: baseline;
+  font-size: var(--card-size);
+  line-height: var(--line-loose);
+}
+.line-label {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  align-self: start;
+  padding-block-start: 0.5em;
+}
+.line-text {
+  word-spacing: 0.04em;
+  hyphens: auto;
+}
+
+/* Source typography swap (these are LTR locales today; logical
+   flow remains so RTL drops in without CSS changes). */
+.line-source .line-text {
+  font-family: var(--font-tr);
+}
+.line-target .line-text {
+  font-family: var(--font-bn);
+}
+
+/* Phrase tokens — non-color signaling is essential.
+   - colored background
+   - border-bottom tick in a darker shade of the same hue
+   - tab/focus brings the paired phrase to attention
+   - the group's suffix (e.g. case marker, locative) is wrapped in
+     a <span class="suffix"> and rendered in a contrasting color
+*/
+.phrase {
+  display: inline-block;
+  padding: 1px 6px;
+  margin-inline: 0;
+  border-radius: 6px;
+  border-block-end: 2px solid var(--slot-bd, currentColor);
+  background: var(--slot-bg, transparent);
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--card-size);
+  line-height: inherit;
+  transition: transform 120ms ease, box-shadow 120ms ease,
+    background 160ms ease;
+  position: relative;
+}
+.phrase .suffix {
+  /* Suffixes are the grammatical core of Turkish; they get a
+     distinct color so the eye lands on them immediately, without
+     competing with the slot hue that marks phrase pairing. */
+  color: var(--suffix);
+  font-weight: 700;
+  /* keep wrap behavior clean across LTR/RTL */
+  unicode-bidi: isolate;
+}
+.phrase:hover,
+.phrase:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--focus);
+  transform: translateY(-1px);
+}
+
+/* When a phrase is focused/hovered, dim everything else that
+   doesn't share its pair-id. The pair-id is on both phrases. */
+.line.has-focus .phrase:not(.is-focus-self) {
+  opacity: 0.32;
+  filter: saturate(0.4);
+}
+
+/* Plain-text mode — strip every mark so each line reads as one
+   continuous stream of normal text. Triggered by a checkbox in
+   the sidebar; the renderer persists the choice in localStorage. */
+.card-region[data-plain="on"] .phrase {
+  background: transparent;
+  border: 0;
+  border-block-end: 0;
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: text;
+  transition: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.card-region[data-plain="on"] .phrase:hover,
+.card-region[data-plain="on"] .phrase:focus-visible {
+  outline: none;
+  box-shadow: none;
+  transform: none;
+}
+.card-region[data-plain="on"] .phrase .suffix {
+  color: inherit;
+  font-weight: inherit;
+}
+.card-region[data-plain="on"] .line.has-focus .phrase:not(.is-focus-self) {
+  opacity: 1;
+  filter: none;
+}
+
+.unpaired {
+  color: var(--ink);
+}
+
+/* Focus mode — mask the translation until reveal. */
+.card-region[data-recall="on"] .line-target .line-text {
+  filter: blur(8px);
+  user-select: none;
+}
+.card-region[data-recall="on"][data-revealed="true"] .line-target .line-text {
+  filter: none;
+  user-select: text;
+}
+
+/* Why-this-verb note */
+.why {
+  margin: 0;
+  font-size: 14px;
+  color: var(--ink-soft);
+  background: var(--surface-soft);
+  border: 1px dashed var(--rule-strong);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+/* Controls */
+.card-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+.progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: center;
+  font-size: 13px;
+  color: var(--ink-mute);
+  margin: 0;
+}
+.progress-track {
+  display: inline-block;
+  inline-size: 160px;
+  block-size: 6px;
+  border-radius: 999px;
+  background: var(--rule);
+  overflow: hidden;
+}
+.progress-fill {
+  display: block;
+  block-size: 100%;
+  inline-size: 0%;
+  background: var(--ink);
+  transition: inline-size 200ms ease;
+}
+
+/* High contrast & reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
+  }
+}
+
+/* Responsive */
+@media (max-width: 720px) {
+  .app-main {
+    grid-template-columns: 1fr;
+  }
+  .app-sidebar {
+    position: static;
+    min-block-size: auto;
+    border-inline-end: 0;
+    border-block-end: 1px solid var(--rule);
+    flex-direction: row;
+    align-items: center;
+  }
+  .size-control {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+  }
+  .size-control input[type="range"] {
+    inline-size: 160px;
+  }
+}
+
+@media (max-width: 560px) {
+  .line {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+  .line-label {
+    padding-block-start: 0;
+  }
+  .progress-track {
+    inline-size: 110px;
+  }
+}

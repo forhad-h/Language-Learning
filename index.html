@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Language Cards · Yapmak vs Etmek</title>
+    <meta
+      name="description"
+      content="A small, accessible language-learning playground. Initial lesson: the Turkish light-verb pair yapmak vs etmek, paired with Bengali."
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body data-theme="soft">
+    <a class="skip" href="#card-region">Skip to card</a>
+
+    <main class="app-main">
+      <aside class="app-sidebar" aria-label="Display controls">
+        <label class="size-control" title="Adjust card text size">
+          <span class="size-label">Text</span>
+          <input
+            id="font-size"
+            type="range"
+            min="18"
+            max="32"
+            step="1"
+            value="22"
+            aria-label="Card text size"
+          />
+          <output class="size-value" for="font-size" aria-hidden="true">22px</output>
+        </label>
+
+        <label class="check-control" title="Show sentences as plain text without any mark color">
+          <input
+            id="plain-text"
+            type="checkbox"
+            aria-label="Show sentences as plain text without any mark color"
+          />
+          <span class="check-label">Plain text</span>
+        </label>
+      </aside>
+
+
+      <section
+        id="card-region"
+        class="card-region"
+        aria-live="polite"
+        aria-labelledby="card-region-title"
+      >
+        <h2 id="card-region-title" class="visually-hidden">Yapmak vs Etmek — examples</h2>
+        <div class="card-stack" data-card-stack></div>
+      </section>
+    </main>
+
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
