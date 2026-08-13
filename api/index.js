@@ -15,16 +15,6 @@
 // here defensively in case Vercel's own injection is delayed.
 if (!process.env.VERCEL) process.env.VERCEL = "1";
 
-// Eagerly require the cache module files at the function entry so
-// Vercel's bundler traces them as top-level dependencies. Without
-// this, the bundler can miss the indirect require chain
-// (api/index.js → server.js → ./server/cache) and ship a bundle
-// missing the cache module — which makes the function crash at
-// cold-start with `Cannot find module './server/cache'`.
-require("../server/cache/index");
-require("../server/cache/DiskCache");
-require("../server/cache/MemoryCache");
-
 const app = require("../server.js");
 
 // Vercel's Node runtime supports the classic (req, res) signature
