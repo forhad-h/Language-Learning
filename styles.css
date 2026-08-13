@@ -906,20 +906,22 @@ body[data-view="landing"] > .home-link:hover {
 /* Inline SVG icons used by the translate/listen affordances. Sized
    to sit beside the label without disrupting the button's line. */
 .lc-icon {
-  inline-size: 12px;
-  block-size: 12px;
+  inline-size: 13px;
+  block-size: 13px;
   flex: 0 0 auto;
   display: inline-block;
-  vertical-align: -2px;
+  vertical-align: middle;
 }
 .lc-icon-wrap {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-inline-end: 4px;
+  margin-inline-end: 6px;
+  line-height: 0;
 }
 .lc-icon-label {
   display: inline-block;
+  line-height: 1;
 }
 
 .phrase-hover-audio,
@@ -975,7 +977,7 @@ body[data-view="landing"] > .home-link:hover {
    so the button is pushed to the trailing edge with a small gap. */
 .line-body {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 12px;
   inline-size: 100%;
   min-inline-size: 0;
@@ -988,27 +990,36 @@ body[data-view="landing"] > .home-link:hover {
 .gt-sentence {
   flex: 0 0 auto;
   margin-inline-start: 0;
-  padding: 3px 10px;
+  padding: 6px 14px;
   font-family: var(--font-sans), "Apple Color Emoji", "Segoe UI Emoji",
     "Noto Color Emoji", "Twemoji Mozilla", sans-serif;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   border-radius: 999px;
   background: var(--ink);
   color: var(--surface);
   border: 1px solid var(--ink);
   cursor: pointer;
-  transition: transform 80ms ease, background 120ms ease;
+  transition: transform 120ms ease, background 150ms ease,
+    border-color 150ms ease, box-shadow 150ms ease;
   white-space: nowrap;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
   text-decoration: none;
+  box-shadow: 0 1px 2px rgba(31, 36, 48, 0.08);
 }
 .gt-sentence:hover {
   transform: translateY(-1px);
   background: var(--accent);
   border-color: var(--accent);
   color: var(--accent-ink);
+  box-shadow: 0 4px 10px rgba(42, 93, 159, 0.25);
+}
+.gt-sentence:active {
+  transform: translateY(0);
 }
 .gt-sentence:focus-visible {
   outline: 3px solid var(--focus);
@@ -1021,27 +1032,36 @@ body[data-view="landing"] > .home-link:hover {
    reads as a sibling action with a distinct meaning (audio). */
 .tts-sentence {
   flex: 0 0 auto;
-  margin-inline-start: 6px;
-  padding: 3px 10px;
+  margin-inline-start: 8px;
+  padding: 6px 14px;
   font-family: var(--font-sans), "Apple Color Emoji", "Segoe UI Emoji",
     "Noto Color Emoji", "Twemoji Mozilla", sans-serif;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   border-radius: 999px;
   background: var(--accent);
   color: var(--accent-ink);
   border: 1px solid var(--accent);
   cursor: pointer;
-  transition: transform 80ms ease, background 120ms ease,
+  transition: transform 120ms ease, background 150ms ease,
+              border-color 150ms ease, box-shadow 150ms ease,
               opacity 120ms ease;
   white-space: nowrap;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
   text-decoration: none;
+  box-shadow: 0 1px 2px rgba(42, 93, 159, 0.15);
 }
 .tts-sentence:hover {
   transform: translateY(-1px);
-  filter: brightness(1.06);
+  filter: brightness(1.08);
+  box-shadow: 0 4px 12px rgba(42, 93, 159, 0.3);
+}
+.tts-sentence:active {
+  transform: translateY(0);
 }
 .tts-sentence:focus-visible {
   outline: 3px solid var(--focus);
@@ -1049,7 +1069,7 @@ body[data-view="landing"] > .home-link:hover {
 }
 .tts-sentence[data-tts-state="loading"],
 .tts-sentence[data-tts-state="playing"] {
-  opacity: 0.6;
+  opacity: 0.7;
   cursor: progress;
 }
 .tts-sentence[data-tts-state="error"] {
