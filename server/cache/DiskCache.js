@@ -119,11 +119,21 @@ function evictUntilUnder(dir, capBytes) {
 
 class DiskCache {
   constructor() {
-    // Eagerly try to create the root so the happy path stays the
-    // same. If the FS is read-only (serverless cold-start edge
-    // cases, sandboxed envs), we log and continue — the cache then
-    // behaves as a no-op: has()→false, set()→{cached:false} — which
-    // is strictly better than crashing the whole function.
+    // Intentionally NO fs work here. The constructor must stay
+    // side-effect free so that simply requiring the module (e.g.
+    // when Vercel's bundler or file-tracer loads it for static
+    // analysis) never touches the filesystem. We do the
+    // existence-check lazily on first use.
+    this._rootEnsured = false;
+    this._disabled = false;
+  }
+
+  // Lazily create the cache root on first use. Returns true on
+  // success, false on a read-only filesystem (in which case the
+  // cache is disabled for the rest of the process lifetime).
+  _ensureRootOnce() {
+    if (this._rootEnsured) return !this._disabled;
+    this._rootEnsured = true;
     const root = resolveCacheRoot();
     const ok = ensureDir(root);
     if (!ok) {
@@ -133,12 +143,14 @@ class DiskCache {
         `if disk writes are unreliable in this environment.`
       );
       this._disabled = true;
+      return false;
     }
+    return true;
   }
 
   // Cheap existence check; no IO beyond stat.
   has({ provider, lang, key }) {
-    if (this._disabled) return false;
+    if (this._disabled || !this._ensureRootOnce()) return false;
     const p = pathsFor({ provider, lang, key });
     try {
       return fs.statSync(p.bin).isFile();
@@ -151,7 +163,7 @@ class DiskCache {
   // Returns null on miss. Bumps atime so the entry counts as
   // recently-used.
   get({ provider, lang, key }) {
-    if (this._disabled) return null;
+    if (this._disabled || !this._ensureRootOnce()) return null;
     const p = pathsFor({ provider, lang, key });
     if (!this.has({ provider, lang, key })) return null;
     try {
@@ -169,7 +181,7 @@ class DiskCache {
   // we still return the original stream in the error case so the
   // caller can serve the response anyway.
   async set({ provider, lang, key, meta, sourceStream }) {
-    if (this._disabled) {
+    if (this._disabled || !this._ensureRootOnce()) {
       // Drain the stream so the caller doesn't see backpressure.
       try {
         if (typeof sourceStream.getReader === "function") {
@@ -231,7 +243,7 @@ class DiskCache {
 
   // Remove a single entry (.bin + .json pair).
   delete({ provider, lang, key }) {
-    if (this._disabled) return false;
+    if (this._disabled || !this._ensureRootOnce()) return false;
     const p = pathsFor({ provider, lang, key });
     let removed = false;
     try { fs.unlinkSync(p.bin); removed = true; } catch (e) { /* ignore */ }
@@ -241,7 +253,7 @@ class DiskCache {
 
   // Empty the entire cache directory.
   clear() {
-    if (this._disabled) return false;
+    if (this._disabled || !this._ensureRootOnce()) return false;
     const root = resolveCacheRoot();
     try {
       fs.rmSync(root, { recursive: true, force: true });
