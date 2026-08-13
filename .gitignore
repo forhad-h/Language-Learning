@@ -1,6 +1,18 @@
 # Dependencies
 node_modules/
 
+# Local env — NEVER commit .env (contains API keys)
+.env
+.env.*
+!.env.example
+
+# TTS audio cache (regenerated on demand)
+server/cache/
+.cache/
+
+# Vercel
+.vercel/
+
 # Local env / OS
 .DS_Store
 *.log

@@ -72,11 +72,32 @@
           aria-label="Switch lesson"
         ></select>
       </label>
+
+      <label class="size-control" title="Adjust TTS playback speed (1.0 = normal, lower = slower for learners)">
+        <span class="size-label">Speed</span>
+        <input
+          id="tts-speed"
+          type="range"
+          min="0.5"
+          max="1.2"
+          step="0.05"
+          value="0.8"
+          aria-label="TTS playback speed"
+        />
+        <output class="size-value" for="tts-speed" aria-hidden="true">0.80×</output>
+      </label>
     </div>
 
     <!-- Lesson data — registers itself via
          window.LC_LESSONS.push(...). -->
     <script src="lessons-data/yapmak-etmek.js"></script>
+    <!-- TTS provider registry — must load before tts.js so the
+         client can resolve a strategy. -->
+    <script src="providers.js"></script>
+    <!-- TTS client — exposes LC_speakSentence on window so the
+         renderer's per-sentence speaker button can call it.
+         Loaded before app.js so the hook is in place by render time. -->
+    <script src="tts.js"></script>
     <script src="../app.js"></script>
   </body>
 </html>

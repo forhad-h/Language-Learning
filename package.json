@@ -4,7 +4,10 @@
   "description": "",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js",
+    "tts": "node server.js",
+    "dev": "node server.js"
   },
   "repository": {
     "type": "git",
@@ -18,7 +21,13 @@
     "url": "https://github.com/forhad-h/Language-Learning/issues"
   },
   "homepage": "https://github.com/forhad-h/Language-Learning#readme",
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
     "playwright": "^1.62.1"
   }
 }

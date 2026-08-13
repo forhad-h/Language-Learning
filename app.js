@@ -212,6 +212,14 @@
           btn.textContent = phraseText;
         }
 
+        // Wire the hover/floating panel for Turkish words. We only
+        // attach the panel when the source locale is Turkish —
+        // other languages don't have base/suffix data, and the
+        // existing pair-highlight behavior is sufficient there.
+        if (localeKey === "source" && locale.code === "tr") {
+          attachHoverPanelHandlers(btn, frag.g, locale);
+        }
+
         lineTextEl.appendChild(btn);
       } else {
         if (sepNeeded) lineTextEl.appendChild(document.createTextNode(" "));
@@ -317,6 +325,38 @@
         openInTranslateTab(sentenceQuery, lesson);
       });
       body.appendChild(sBtn);
+
+      // Native-pronunciation speaker. Only enabled for Turkish today
+      // because that's the only lesson family with a TTS provider
+      // wired in. The button stays in the DOM for other languages so
+      // it's easy to opt them in by adding a tts.* block later; the
+      // click handler is a no-op when no provider is registered.
+      var speakBtn = document.createElement("button");
+      speakBtn.type = "button";
+      speakBtn.className = "tts-sentence";
+      speakBtn.textContent = "\uD83C\uDFA7 Listen"; // 🔊 Listen
+      speakBtn.title = "Hear the " + lesson.source.label +
+                       " sentence read natively";
+      speakBtn.setAttribute("aria-label",
+        "Hear the " + lesson.source.label +
+        " sentence read natively");
+      // Mark the language so the front-end TTS module can pick the
+      // right provider. Turkish-only today; this is the seam for
+      // adding more.
+      speakBtn.setAttribute("data-tts-lang", lesson.source.code);
+      speakBtn.addEventListener("click", function () {
+        // Strategy registry decides which provider handles this lang.
+        // Setting LC_TTS_PROVIDER (default "elevenlabs") switches the
+        // active provider without touching this file.
+        if (typeof window.LC_speakSentence === "function") {
+          window.LC_speakSentence(
+            lesson.source.code,
+            sentenceQuery,
+            speakBtn
+          );
+        }
+      });
+      body.appendChild(speakBtn);
     }
 
     return art;
@@ -478,8 +518,329 @@
   }
 
   /* ---------------------------------------------------------
-     Section E — Display controls wiring (toolbar)
+     Section E — Hover/floating panel for Turkish words
+     ---------------------------------------------------------
+     When the user hovers a Turkish phrase button, a small panel
+     pops up showing:
+       - the base/root word (without the suffix, e.g. "anne")
+       - Bengali meaning of the base form (e.g. "মা")
+       - Bengali meaning of the inflected form (e.g. "আমার মা")
+       - an audio button that calls window.LC_speakSentence
+       - a Google Translate link for the word
+
+     The panel is a singleton DOM node appended to <body>; we
+     position it relative to the word's bounding rect, flipping
+     above/below to avoid clipping at viewport edges. Mouseover
+     on the panel itself is allowed (so users can click buttons)
+     via a small hide-delay on mouseleave.
      --------------------------------------------------------- */
+  var hoverPanel = null;
+  var hoverHideTimer = 0;
+  var hoverActiveEl = null;
+
+  function ensureHoverPanel() {
+    if (hoverPanel && hoverPanel.parentNode) return hoverPanel;
+    var p = document.createElement("div");
+    p.className = "phrase-hover-panel";
+    p.setAttribute("role", "tooltip");
+    p.setAttribute("aria-hidden", "true");
+    p.hidden = true;
+    var arrow = document.createElement("span");
+    arrow.className = "phrase-hover-arrow";
+    arrow.setAttribute("aria-hidden", "true");
+    p.appendChild(arrow);
+    // Allow hover over the panel itself so users can click the
+    // buttons inside it without it disappearing immediately.
+    p.addEventListener("mouseenter", function () {
+      if (hoverHideTimer) {
+        clearTimeout(hoverHideTimer);
+        hoverHideTimer = 0;
+      }
+    });
+    p.addEventListener("mouseleave", function () {
+      scheduleHideHoverPanel();
+    });
+    document.body.appendChild(p);
+    hoverPanel = p;
+    return p;
+  }
+
+  // Build the panel content for a phrase. We pull the group
+  // metadata (base, meaningBase, suffix, target meaning) from
+  // the dataset; if missing, we fall back to showing just the
+  // visible text so the feature still works for groups that
+  // haven't been back-filled yet.
+  function renderHoverPanelContent(phraseBtn) {
+    var p = ensureHoverPanel();
+    // Wipe everything except the arrow (which is the first child).
+    while (p.lastChild && p.lastChild !== p.firstChild) {
+      p.removeChild(p.lastChild);
+    }
+    var ds = phraseBtn.dataset;
+    var sourceText = ds.sourceText || phraseBtn.textContent || "";
+    var baseText = ds.baseText || sourceText;
+    var suffixText = ds.suffixText || "";
+    var meaningBase = ds.meaningBase || "";
+    var meaningForm = ds.meaningForm || "";
+    var kind = ds.kind || "word";
+    var gloss = ds.gloss || "";
+    var lessonLang = ds.lessonLang || "tr";
+
+    // Header: surface form + small "kind" pill (noun / verb)
+    var head = document.createElement("div");
+    head.className = "phrase-hover-head";
+    var word = document.createElement("span");
+    word.className = "phrase-hover-word is-source";
+    word.lang = lessonLang;
+    word.dir = "ltr";
+    word.textContent = sourceText;
+    head.appendChild(word);
+    if (kind) {
+      var k = document.createElement("span");
+      k.className = "phrase-hover-kind";
+      k.textContent = kind;
+      head.appendChild(k);
+    }
+    p.appendChild(head);
+
+    // Row 1: Base form (with suffix badge if any)
+    var row1 = document.createElement("div");
+    row1.className = "phrase-hover-row";
+    var l1 = document.createElement("span");
+    l1.className = "phrase-hover-label";
+    l1.textContent = "Base";
+    var v1 = document.createElement("span");
+    v1.className = "phrase-hover-value is-source";
+    v1.lang = lessonLang;
+    v1.dir = "ltr";
+    v1.textContent = baseText;
+    if (suffixText) {
+      var suf = document.createElement("span");
+      suf.className = "phrase-hover-suffix";
+      suf.lang = lessonLang;
+      suf.dir = "ltr";
+      suf.textContent = "+" + suffixText;
+      v1.appendChild(suf);
+    }
+    row1.appendChild(l1);
+    row1.appendChild(v1);
+    p.appendChild(row1);
+
+    // Row 2: Bengali meaning of the base form
+    if (meaningBase) {
+      var row2 = document.createElement("div");
+      row2.className = "phrase-hover-row";
+      var l2 = document.createElement("span");
+      l2.className = "phrase-hover-label";
+      l2.textContent = "Base meaning";
+      var v2 = document.createElement("span");
+      v2.className = "phrase-hover-value";
+      v2.lang = "bn";
+      v2.dir = "ltr";
+      v2.textContent = meaningBase;
+      row2.appendChild(l2);
+      row2.appendChild(v2);
+      p.appendChild(row2);
+    }
+
+    // Row 3: Bengali meaning of the inflected/suffixed form
+    if (meaningForm) {
+      var row3 = document.createElement("div");
+      row3.className = "phrase-hover-row";
+      var l3 = document.createElement("span");
+      l3.className = "phrase-hover-label";
+      l3.textContent = "As used";
+      var v3 = document.createElement("span");
+      v3.className = "phrase-hover-value";
+      v3.lang = "bn";
+      v3.dir = "ltr";
+      v3.textContent = meaningForm;
+      row3.appendChild(l3);
+      row3.appendChild(v3);
+      p.appendChild(row3);
+    }
+
+    // Optional row 4: gloss (English hint) — helps when meaning is
+    // missing or unfamiliar.
+    if (gloss) {
+      var row4 = document.createElement("div");
+      row4.className = "phrase-hover-row";
+      var l4 = document.createElement("span");
+      l4.className = "phrase-hover-label";
+      l4.textContent = "Gloss";
+      var v4 = document.createElement("span");
+      v4.className = "phrase-hover-value";
+      v4.lang = "en";
+      v4.dir = "ltr";
+      v4.textContent = gloss;
+      row4.appendChild(l4);
+      row4.appendChild(v4);
+      p.appendChild(row4);
+    }
+
+    // Actions: audio + Google Translate. Both target the visible
+    // surface form so users hear/translate what they see.
+    var actions = document.createElement("div");
+    actions.className = "phrase-hover-actions";
+
+    var speakBtn = document.createElement("button");
+    speakBtn.type = "button";
+    speakBtn.className = "phrase-hover-audio";
+    speakBtn.setAttribute("data-tts-lang", lessonLang);
+    speakBtn.setAttribute("aria-label",
+      "Hear " + sourceText + " pronounced natively");
+    speakBtn.textContent = "🔊 Listen";
+    speakBtn.addEventListener("click", function (ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      if (typeof window.LC_speakSentence === "function") {
+        window.LC_speakSentence(lessonLang, sourceText, speakBtn);
+      }
+    });
+    actions.appendChild(speakBtn);
+
+    var gt = document.createElement("a");
+    gt.className = "phrase-hover-gt";
+    gt.href = "https://translate.google.com/?sl=tr&tl=en&text=" +
+      encodeURIComponent(sourceText);
+    gt.target = "_blank";
+    gt.rel = "noopener noreferrer";
+    gt.setAttribute("aria-label",
+      "Open " + sourceText + " in Google Translate");
+    gt.textContent = "🌐 Translate";
+    actions.appendChild(gt);
+
+    p.appendChild(actions);
+  }
+
+  // Position the panel relative to a target rect. We try to put
+  // it above the word; if there isn't room we flip it below.
+  function positionHoverPanel(targetRect) {
+    var p = hoverPanel;
+    if (!p) return;
+    // First render so we have dimensions.
+    p.hidden = false;
+    var pw = p.offsetWidth;
+    var ph = p.offsetHeight;
+    var margin = 8;
+    var gap = 10;
+    var vw = window.innerWidth;
+    var vh = window.innerHeight;
+    // Decide vertical placement: above by default.
+    var placeAbove = targetRect.top - ph - gap >= margin;
+    var top;
+    var arrowDir;
+    if (placeAbove) {
+      top = targetRect.top - ph - gap;
+      arrowDir = "down"; // arrow on panel points down to the word
+    } else {
+      top = targetRect.bottom + gap;
+      arrowDir = "up"; // arrow on panel points up to the word
+      // Clamp so it doesn't overflow bottom.
+      if (top + ph > vh - margin) top = Math.max(margin, vh - ph - margin);
+    }
+    // Horizontal: center on the word, but clamp to viewport.
+    var left = targetRect.left + targetRect.width / 2 - pw / 2;
+    if (left < margin) left = margin;
+    if (left + pw > vw - margin) left = vw - pw - margin;
+    p.style.insetBlockStart = top + "px";
+    p.style.insetInlineStart = left + "px";
+    p.setAttribute("data-arrow", arrowDir);
+  }
+
+  function showHoverPanel(phraseBtn) {
+    if (hoverHideTimer) {
+      clearTimeout(hoverHideTimer);
+      hoverHideTimer = 0;
+    }
+    hoverActiveEl = phraseBtn;
+    ensureHoverPanel();
+    renderHoverPanelContent(phraseBtn);
+    var rect = phraseBtn.getBoundingClientRect();
+    positionHoverPanel(rect);
+    hoverPanel.classList.add("is-visible");
+    hoverPanel.setAttribute("aria-hidden", "false");
+  }
+
+  function scheduleHideHoverPanel() {
+    if (hoverHideTimer) clearTimeout(hoverHideTimer);
+    // 200ms grace period so the user can move the cursor onto the
+    // panel itself and click the audio / translate buttons.
+    hoverHideTimer = setTimeout(function () {
+      hoverHideTimer = 0;
+      if (hoverPanel) {
+        hoverPanel.classList.remove("is-visible");
+        hoverPanel.setAttribute("aria-hidden", "true");
+        // After fade-out we hide() so screen readers skip it.
+        setTimeout(function () {
+          if (hoverPanel && !hoverPanel.classList.contains("is-visible")) {
+            hoverPanel.hidden = true;
+          }
+        }, 160);
+      }
+      hoverActiveEl = null;
+    }, 200);
+  }
+
+  // Reposition the panel on scroll/resize so it stays anchored to
+  // the hovered word. Listeners are attached lazily on first show.
+  var hoverListenersBound = false;
+  function bindHoverReposition() {
+    if (hoverListenersBound) return;
+    hoverListenersBound = true;
+    var reposition = function () {
+      if (!hoverActiveEl || !hoverPanel) return;
+      if (hoverPanel.classList.contains("is-visible")) {
+        var rect = hoverActiveEl.getBoundingClientRect();
+        positionHoverPanel(rect);
+      }
+    };
+    window.addEventListener("scroll", reposition, true);
+    window.addEventListener("resize", reposition);
+    // Keyboard focus also shows the panel — reposition when focus
+    // changes via tab navigation.
+    document.addEventListener("focusin", function (e) {
+      var t = e.target;
+      if (t && t.classList && t.classList.contains("phrase")) {
+        showHoverPanel(t);
+      }
+    });
+    document.addEventListener("focusout", function (e) {
+      var t = e.target;
+      if (t && t.classList && t.classList.contains("phrase")) {
+        scheduleHideHoverPanel();
+      }
+    });
+  }
+
+  // Wire the hover behavior on every rendered phrase. We attach
+  // the listeners here in renderLine so that newly rendered words
+  // also get the panel; the dataset attributes carry the group
+  // metadata needed by the panel renderer.
+  function attachHoverPanelHandlers(btn, group, locale) {
+    // Store the metadata on the dataset so renderHoverPanelContent
+    // can read it without us threading the group object around.
+    btn.dataset.sourceText = group.source || "";
+    btn.dataset.baseText = group.base || (group.source || "");
+    btn.dataset.suffixText = group.suffix || "";
+    btn.dataset.meaningBase = group.meaningBase || "";
+    btn.dataset.meaningForm = group.target || "";
+    btn.dataset.kind = group.kind || "";
+    btn.dataset.gloss = group.gloss || "";
+    btn.dataset.lessonLang = locale ? locale.code : "tr";
+    // Avoid double-binding if renderCard is somehow called twice.
+    if (btn.__hoverPanelBound) return;
+    btn.__hoverPanelBound = true;
+    btn.addEventListener("mouseenter", function () {
+      bindHoverReposition();
+      showHoverPanel(btn);
+    });
+    btn.addEventListener("mouseleave", function () {
+      scheduleHideHoverPanel();
+    });
+  }
+
+
 
   function wireDisplayControls() {
     // Font-size slider — writes --card-size so every card scales
@@ -531,10 +892,39 @@
         setActiveLesson(select.value);
       });
     }
+
+    // TTS speed slider. Writes window.LC_TTS_SPEED (persisted by
+    // tts.js) and updates the visible multiplier. Each provider
+    // re-reads this on every click so changes apply immediately —
+    // a fresh fetch happens with the new speed, the server cache
+    // holds the previous speed's audio, the browser cache evicts
+    // stale entries naturally because the cache key includes speed.
+    var speedInput = document.getElementById("tts-speed");
+    if (speedInput && typeof window.LC_setTtsSpeed === "function") {
+      // Reflect any stored preference or the default that tts.js
+      // exposed on window.LC_TTS_SPEED into the slider position.
+      var initial = typeof window.LC_TTS_SPEED === "number"
+        ? window.LC_TTS_SPEED
+        : 0.8;
+      speedInput.value = String(initial);
+      var speedOut = speedInput.parentElement
+        ? speedInput.parentElement.querySelector(".size-value")
+        : null;
+      if (speedOut) speedOut.textContent = Number(initial).toFixed(2) + "×";
+      speedInput.addEventListener("input", function () {
+        var v = Number(speedInput.value);
+        window.LC_setTtsSpeed(v);
+        if (speedOut) speedOut.textContent = v.toFixed(2) + "×";
+      });
+    }
   }
 
   /* ---------------------------------------------------------
-     Section F — Page-level rendering (real paths, no hash)
+     Section F — Display controls wiring (toolbar)
+     --------------------------------------------------------- */
+
+  /* ---------------------------------------------------------
+     Section G — Page-level rendering (real paths, no hash)
      ---------------------------------------------------------
      Each HTML page declares its intent via attributes on <body>:
        - data-view="landing"            → render the lesson list.
@@ -556,7 +946,7 @@
   }
 
   /* ---------------------------------------------------------
-     Section G — Init
+     Section H — Init
      --------------------------------------------------------- */
 
   function init() {

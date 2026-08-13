@@ -756,6 +756,197 @@ body[data-view="landing"] > .home-link:hover {
   }
 }
 
+/* Hover/floating panel — shows base word, base meaning, suffixed
+   meaning, audio button, and Google Translate link when the user
+   hovers a Turkish word. Lives at the top of the stacking order so
+   it floats over the toolbar and sidebar without being blocked. */
+.phrase-hover-panel {
+  position: fixed;
+  z-index: 200;
+  min-inline-size: 220px;
+  max-inline-size: 320px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--rule-strong);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--ink);
+  pointer-events: auto;
+  /* Subtle enter/leave animation. Reduced-motion users get the
+     instant transition via the global override. */
+  opacity: 0;
+  transform: translateY(2px);
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+.phrase-hover-panel.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.phrase-hover-panel[hidden] {
+  display: none;
+}
+.phrase-hover-arrow {
+  position: absolute;
+  inline-size: 0;
+  block-size: 0;
+  border: 7px solid transparent;
+  pointer-events: none;
+}
+/* Arrow placement — default: above the word, arrow points down */
+.phrase-hover-panel[data-arrow="down"] .phrase-hover-arrow {
+  inset-block-end: -14px;
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+  border-block-start-color: var(--rule-strong);
+}
+.phrase-hover-panel[data-arrow="down"] .phrase-hover-arrow::after {
+  content: "";
+  position: absolute;
+  inline-size: 0;
+  block-size: 0;
+  border: 6px solid transparent;
+  border-block-start-color: var(--surface);
+  inset-block-start: -7px;
+  inset-inline-start: -6px;
+}
+/* Arrow placement — below the word, arrow points up */
+.phrase-hover-panel[data-arrow="up"] .phrase-hover-arrow {
+  inset-block-start: -14px;
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+  border-block-end-color: var(--rule-strong);
+}
+.phrase-hover-panel[data-arrow="up"] .phrase-hover-arrow::after {
+  content: "";
+  position: absolute;
+  inline-size: 0;
+  block-size: 0;
+  border: 6px solid transparent;
+  border-block-end-color: var(--surface);
+  inset-block-start: 1px;
+  inset-inline-start: -6px;
+}
+
+.phrase-hover-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-block-end: 6px;
+}
+.phrase-hover-word {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+.phrase-hover-kind {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--surface-soft);
+  border: 1px solid var(--rule);
+}
+
+.phrase-hover-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+  align-items: baseline;
+  margin-block-start: 4px;
+}
+.phrase-hover-row + .phrase-hover-row {
+  border-block-start: 1px dashed var(--rule);
+  padding-block-start: 6px;
+  margin-block-start: 6px;
+}
+.phrase-hover-label {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
+.phrase-hover-value {
+  font-size: 13px;
+  color: var(--ink);
+  font-family: var(--target-font, var(--font-bn));
+  unicode-bidi: isolate;
+}
+.phrase-hover-value.is-source {
+  font-family: var(--font-tr);
+}
+
+.phrase-hover-suffix {
+  display: inline-block;
+  margin-inline-start: 4px;
+  padding: 1px 5px;
+  font-size: 11px;
+  color: var(--suffix);
+  background: var(--surface-soft);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  font-family: var(--font-tr);
+}
+
+.phrase-hover-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-block-start: 8px;
+  padding-block-start: 8px;
+  border-block-start: 1px solid var(--rule);
+}
+.phrase-hover-audio,
+.phrase-hover-gt {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  border: 1px solid var(--rule-strong);
+  background: var(--surface-soft);
+  color: var(--ink);
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 80ms ease, background 120ms ease,
+              border-color 120ms ease, color 120ms ease;
+  white-space: nowrap;
+}
+.phrase-hover-audio:hover,
+.phrase-hover-gt:hover {
+  transform: translateY(-1px);
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+.phrase-hover-audio:focus-visible,
+.phrase-hover-gt:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.phrase-hover-audio[data-tts-state="loading"],
+.phrase-hover-audio[data-tts-state="playing"] {
+  opacity: 0.6;
+  cursor: progress;
+}
+.phrase-hover-audio[data-tts-state="error"] {
+  background: var(--danger, #c0392b);
+  border-color: var(--danger, #c0392b);
+  color: #fff;
+}
+
 /* Sentence-level translate button that sits on the right side of
    the Turkish line. The line text is wrapped in a flex container
    so the button is pushed to the trailing edge with a small gap. */
@@ -799,6 +990,47 @@ body[data-view="landing"] > .home-link:hover {
   outline: 3px solid var(--focus);
   outline-offset: 2px;
   color: var(--surface);
+}
+
+/* Native-pronunciation speaker button. Sits next to .gt-sentence in
+   the same flex row. Shares the pill geometry but uses --accent so it
+   reads as a sibling action with a distinct meaning (audio). */
+.tts-sentence {
+  flex: 0 0 auto;
+  margin-inline-start: 6px;
+  padding: 3px 10px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  border: 1px solid var(--accent);
+  cursor: pointer;
+  transition: transform 80ms ease, background 120ms ease,
+              opacity 120ms ease;
+  white-space: nowrap;
+  display: inline-block;
+  text-decoration: none;
+}
+.tts-sentence:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+}
+.tts-sentence:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.tts-sentence[data-tts-state="loading"],
+.tts-sentence[data-tts-state="playing"] {
+  opacity: 0.6;
+  cursor: progress;
+}
+.tts-sentence[data-tts-state="error"] {
+  background: var(--danger, #c0392b);
+  border-color: var(--danger, #c0392b);
+  color: #fff;
 }
 
 /* Landing page — shown at /. Lists every language and its
