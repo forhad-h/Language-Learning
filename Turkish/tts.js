@@ -98,12 +98,12 @@
   }
 
   var cache = {
-    // Cache key includes the speed so changing the slider naturally
+    // Cache key includes the speed so changing the speed naturally
     // re-fetches rather than replaying the wrong cadence. Most users
     // keep one speed and reuse cached audio; users who experiment
     // with speed get a small per-speed copy.
     key: function (text, speed) {
-      var s = speed == null ? 0.8 : speed;
+      var s = speed == null ? 0.5 : speed;
       return LS_PREFIX + s.toFixed(2) + ":" + text;
     },
     get: function (key) {
@@ -210,9 +210,8 @@
   };
   window.LC_speakSentence = LC_speakSentence;
 
-  // Speed knob. The toolbar slider writes here, providers read from
-  // here on every click. Persists in localStorage so the chosen
-  // cadence survives reloads.
+  // Speed knob. Providers read from here on every click. Persists in
+  // localStorage so the chosen cadence survives reloads.
   var LS_SPEED = "lc-tts-speed";
   function getStoredSpeed() {
     try {
@@ -226,7 +225,7 @@
   // fine.
   if (typeof window.LC_TTS_SPEED !== "number") {
     var stored = getStoredSpeed();
-    window.LC_TTS_SPEED = stored != null ? stored : 0.8;
+    window.LC_TTS_SPEED = stored != null ? stored : 0.5;
   }
   window.LC_setTtsSpeed = function (speed) {
     var n = Number(speed);

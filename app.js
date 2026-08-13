@@ -892,31 +892,6 @@
         setActiveLesson(select.value);
       });
     }
-
-    // TTS speed slider. Writes window.LC_TTS_SPEED (persisted by
-    // tts.js) and updates the visible multiplier. Each provider
-    // re-reads this on every click so changes apply immediately —
-    // a fresh fetch happens with the new speed, the server cache
-    // holds the previous speed's audio, the browser cache evicts
-    // stale entries naturally because the cache key includes speed.
-    var speedInput = document.getElementById("tts-speed");
-    if (speedInput && typeof window.LC_setTtsSpeed === "function") {
-      // Reflect any stored preference or the default that tts.js
-      // exposed on window.LC_TTS_SPEED into the slider position.
-      var initial = typeof window.LC_TTS_SPEED === "number"
-        ? window.LC_TTS_SPEED
-        : 0.8;
-      speedInput.value = String(initial);
-      var speedOut = speedInput.parentElement
-        ? speedInput.parentElement.querySelector(".size-value")
-        : null;
-      if (speedOut) speedOut.textContent = Number(initial).toFixed(2) + "×";
-      speedInput.addEventListener("input", function () {
-        var v = Number(speedInput.value);
-        window.LC_setTtsSpeed(v);
-        if (speedOut) speedOut.textContent = v.toFixed(2) + "×";
-      });
-    }
   }
 
   /* ---------------------------------------------------------

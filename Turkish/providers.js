@@ -25,7 +25,7 @@
  *   The active speed (a multiplier, 0.5–1.0 typically) lives at
  *   window.LC_TTS_SPEED. The ElevenLabs provider passes it in the POST
  *   body; the WebSpeech provider applies it to utterance.rate. The
- *   shared client includes it in cache keys so changing the slider
+ *   shared client includes it in cache keys so changing the speed
  *   re-fetches instead of replaying the wrong audio.
  */
 
@@ -33,11 +33,10 @@
   "use strict";
 
   function currentSpeed() {
-    // Default 0.8 — learner-friendly. window.LC_TTS_SPEED can be set
-    // by the toolbar slider, in DevTools, or by future per-lesson
-    // config.
+    // Default 0.5 — learner-friendly. window.LC_TTS_SPEED can be set
+    // in DevTools or by future per-lesson config.
     var s = (typeof window !== "undefined" && window.LC_TTS_SPEED);
-    return typeof s === "number" && s > 0 ? s : 0.8;
+    return typeof s === "number" && s > 0 ? s : 0.5;
   }
 
   function proxyPost(args) {

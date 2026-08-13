@@ -48,7 +48,7 @@ The app deploys as a single Vercel project. Static files are served from the pro
    - `ELEVENLABS_API_KEY` — your ElevenLabs key (free tier works).
    - `ELEVENLABS_VOICE_ID` — optional, defaults to Callum.
    - `TTS_PROVIDER` — `elevenlabs` (default) or `webspeech`.
-   - `TTS_DEFAULT_SPEED` — optional, default `0.8`.
+   - `TTS_DEFAULT_SPEED` — optional, default `0.5`.
 4. Deploy. Every push to `main` redeploys automatically.
 
 ### How routing works

@@ -39,7 +39,7 @@ module.exports = {
   async synthesize({ text, lang, voice, speed }) {
     // Encode as a tiny JSON stream. The frontend's tts.js knows to
     // route this through window.speechSynthesis instead of <audio>.
-    // `speed` defaults to 0.8 on the frontend if missing.
+    // `speed` defaults to 0.5 on the frontend if missing.
     const payload = JSON.stringify({
       __clientSide: true,
       provider: "webspeech",

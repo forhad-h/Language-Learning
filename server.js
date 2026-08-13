@@ -541,12 +541,12 @@ app.post("/api/tts", async (req, res) => {
   const lang = (body.lang || "tr").trim();
   const voice = body.voice || undefined;
   const preferred = body.provider || defaultId();
-  // Default speed 0.8 is learner-friendly. Range typically 0.5–1.0;
+  // Default speed 0.5 is learner-friendly. Range typically 0.5–1.0;
   // providers clamp internally. A `null` body field means "use the
   // provider's default".
   const speed =
     body.speed == null || body.speed === ""
-      ? Number(process.env.TTS_DEFAULT_SPEED) || 0.8
+      ? Number(process.env.TTS_DEFAULT_SPEED) || 0.5
       : Number(body.speed);
 
   if (!text) return res.status(400).json({ error: "text is required" });
