@@ -14,6 +14,9 @@ node_modules/
 # Vercel
 .vercel/
 
+# Puku CLI local config (per-machine, not for source control)
+.puku/
+
 # Local env / OS
 .DS_Store
 *.log
