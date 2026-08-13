@@ -19,17 +19,20 @@
 //
 // Env:
 //   ELEVENLABS_API_KEY   required
-//   ELEVENLABS_VOICE_ID  optional, defaults to Clyde (deep male)
+//   ELEVENLABS_VOICE_ID  optional, defaults to Daniel (multilingual)
 
 "use strict";
 
 // ElevenLabs' built-in voice IDs are tied to the account that
-// created them. "Rachel" (21m00Tcm4TlvDq8ikWAM) ships with every
-// ElevenLabs account, so it's the safest default — the previous
-// default ("b0e9dk46J60vl9FwM1sF") was returning 404 on production
-// because it was account-specific. Override with ELEVENLABS_VOICE_ID
-// in env to use any other voice you own.
-const DEFAULT_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"; // Rachel — multilingual v2
+// created them. ElevenLabs returns 402 for library voices the free
+// tier isn't entitled to (e.g. Rachel, Elli). On this account the
+// following IDs return HTTP 200, so we default to Daniel:
+//   onwK4e9ZLuTAKqWW03F9  Daniel  (multilingual, neutral)
+//   EXAVITQu4vr4xnSDxMaL  Bella   (multilingual, female)
+//   ErXwobaYiN019PkySvjV  Antoni  (multilingual, warm male)
+// Override with ELEVENLABS_VOICE_ID in env to use any other voice
+// you have access to (cloned voices also work).
+const DEFAULT_VOICE_ID = "onwK4e9ZLuTAKqWW03F9"; // Daniel — multilingual v2
 const MODEL_ID = "eleven_multilingual_v2";
 
 // Slow down the voice by inserting SSML-like <break> tags between
