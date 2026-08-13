@@ -23,7 +23,13 @@
 
 "use strict";
 
-const DEFAULT_VOICE_ID = "b0e9dk46J60vl9FwM1sF"; // Callum — deep male
+// ElevenLabs' built-in voice IDs are tied to the account that
+// created them. "Rachel" (21m00Tcm4TlvDq8ikWAM) ships with every
+// ElevenLabs account, so it's the safest default — the previous
+// default ("b0e9dk46J60vl9FwM1sF") was returning 404 on production
+// because it was account-specific. Override with ELEVENLABS_VOICE_ID
+// in env to use any other voice you own.
+const DEFAULT_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"; // Rachel — multilingual v2
 const MODEL_ID = "eleven_multilingual_v2";
 
 // Slow down the voice by inserting SSML-like <break> tags between
@@ -84,7 +90,10 @@ module.exports = {
 
     if (!upstream.ok) {
       const body = await upstream.text().catch(() => "");
-      const err = new Error(`elevenlabs upstream ${upstream.status}`);
+      const err = new Error(
+        `elevenlabs upstream ${upstream.status} ` +
+        `(voice_id=${voiceId}, model=${MODEL_ID})`
+      );
       err.status = upstream.status;
       err.body = body.slice(0, 500);
       throw err;
