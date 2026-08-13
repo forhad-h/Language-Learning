@@ -6,11 +6,9 @@ node_modules/
 .env.*
 !.env.example
 
-# TTS audio cache (regenerated on demand)
-# Source files in server/cache/ are SHIPPED — only ignore the runtime
-# artifacts (.bin/.json entries produced at runtime).
-server/cache/**/*.bin
-server/cache/**/*.json
+# TTS audio cache (regenerated on demand). Now lives in /tmp on
+# serverless and under .cache/ locally; the source module was
+# inlined into server.js for Vercel-bundler compatibility.
 .cache/
 
 # Vercel
