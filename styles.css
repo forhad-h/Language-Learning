@@ -902,6 +902,26 @@ body[data-view="landing"] > .home-link:hover {
   padding-block-start: 8px;
   border-block-start: 1px solid var(--rule);
 }
+
+/* Inline SVG icons used by the translate/listen affordances. Sized
+   to sit beside the label without disrupting the button's line. */
+.lc-icon {
+  inline-size: 12px;
+  block-size: 12px;
+  flex: 0 0 auto;
+  display: inline-block;
+  vertical-align: -2px;
+}
+.lc-icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-inline-end: 4px;
+}
+.lc-icon-label {
+  display: inline-block;
+}
+
 .phrase-hover-audio,
 .phrase-hover-gt {
   flex: 0 0 auto;
@@ -909,7 +929,10 @@ body[data-view="landing"] > .home-link:hover {
   align-items: center;
   gap: 4px;
   padding: 4px 10px;
-  font: inherit;
+  /* Emoji font fallback so the leading glyph (🔊 / 🌐) renders on
+     systems where the default sans stack has no color-emoji face. */
+  font-family: var(--font-sans), "Apple Color Emoji", "Segoe UI Emoji",
+    "Noto Color Emoji", "Twemoji Mozilla", sans-serif;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -966,7 +989,8 @@ body[data-view="landing"] > .home-link:hover {
   flex: 0 0 auto;
   margin-inline-start: 0;
   padding: 3px 10px;
-  font: inherit;
+  font-family: var(--font-sans), "Apple Color Emoji", "Segoe UI Emoji",
+    "Noto Color Emoji", "Twemoji Mozilla", sans-serif;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -999,7 +1023,8 @@ body[data-view="landing"] > .home-link:hover {
   flex: 0 0 auto;
   margin-inline-start: 6px;
   padding: 3px 10px;
-  font: inherit;
+  font-family: var(--font-sans), "Apple Color Emoji", "Segoe UI Emoji",
+    "Noto Color Emoji", "Twemoji Mozilla", sans-serif;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.06em;

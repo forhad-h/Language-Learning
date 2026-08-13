@@ -23,6 +23,37 @@
  * correctly without code changes.
  */
 
+// Inline SVG icons used by the translate / listen affordances.
+// We use SVGs instead of emoji glyphs so the icon renders the same
+// everywhere regardless of installed system emoji fonts.
+var ICONS = {
+  speaker:
+    '<svg viewBox="0 0 16 16" aria-hidden="true" focusable="false" ' +
+    'class="lc-icon lc-icon-speaker">' +
+    '<path fill="currentColor" d="M3.5 6h2.7l3.3-2.6v9.2L6.2 10H3.5a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5zM11.5 8a2.5 2.5 0 0 0-1.5-2.3v4.6a2.5 2.5 0 0 0 1.5-2.3zm-1.5-4.2v1.2a3.7 3.7 0 0 1 0 6v1.2a4.9 4.9 0 0 0 0-8.4z"/>' +
+    '</svg>',
+  globe:
+    '<svg viewBox="0 0 16 16" aria-hidden="true" focusable="false" ' +
+    'class="lc-icon lc-icon-globe">' +
+    '<path fill="currentColor" d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zM2.5 8a5.5 5.5 0 0 1 .4-2h2.2a13 13 0 0 0 0 4H2.9a5.5 5.5 0 0 1-.4-2zm5.5-5.5a11 11 0 0 1 1.7 3.5H6.3a11 11 0 0 1 1.7-3.5zm0 11a11 11 0 0 1-1.7-3.5h3.4A11 11 0 0 1 8 13.5zm-2.2-4.5a12 12 0 0 1 0-2h4.4a12 12 0 0 1 0 2H5.8zm6.6 0a13 13 0 0 0 0-4h2.2a5.5 5.5 0 0 1 0 4h-2.2zm.6-5h-1.9A12 12 0 0 0 9.8 2.4a5.5 5.5 0 0 1 2.7 1.6zM6.2 2.4A12 12 0 0 0 4.4 4H2.5a5.5 5.5 0 0 1 2.7-1.6zM2.5 12h1.9a12 12 0 0 0 1.8 1.6A5.5 5.5 0 0 1 2.5 12zm7.5 1.6a12 12 0 0 0 1.8-1.6h1.9a5.5 5.5 0 0 1-3.7 1.6z"/>' +
+    '</svg>',
+};
+
+// Append the named SVG icon to a button and return the new text node
+// where the label should go. The icon's markup is hard-coded above,
+// so it's safe to render via innerHTML; the label is set with
+// textContent to avoid HTML injection.
+function appendIcon(btn, name) {
+  var wrap = document.createElement("span");
+  wrap.className = "lc-icon-wrap";
+  wrap.innerHTML = ICONS[name] || "";
+  btn.appendChild(wrap);
+  var label = document.createElement("span");
+  label.className = "lc-icon-label";
+  btn.appendChild(label);
+  return label;
+}
+
 (function () {
   "use strict";
 
@@ -315,7 +346,8 @@
       var sBtn = document.createElement("button");
       sBtn.type = "button";
       sBtn.className = "gt-sentence";
-      sBtn.textContent = "🔊 Translate";
+      var sLabel = appendIcon(sBtn, "globe");
+      sLabel.textContent = "Translate";
       sBtn.title = "Translate the " + lesson.source.label +
                    " sentence to " + lesson.target.label;
       sBtn.setAttribute("aria-label",
@@ -334,7 +366,8 @@
       var speakBtn = document.createElement("button");
       speakBtn.type = "button";
       speakBtn.className = "tts-sentence";
-      speakBtn.textContent = "\uD83C\uDFA7 Listen"; // 🔊 Listen
+      var speakLabel = appendIcon(speakBtn, "speaker");
+      speakLabel.textContent = "Listen";
       speakBtn.title = "Hear the " + lesson.source.label +
                        " sentence read natively";
       speakBtn.setAttribute("aria-label",
@@ -420,38 +453,63 @@
     }, 0);
   }
 
+  // The cursor may move from a Turkish word onto the floating hover
+  // panel, but that path passes through a thin gap between the two.
+  // relatedTarget inside the panel, or elementFromPoint at the cursor
+  // resolving to the panel, should keep the cross-highlight on the
+  // word so the panel and the word stay visually connected.
+  var lastCursorX = 0;
+  var lastCursorY = 0;
+  document.addEventListener("mousemove", function (e) {
+    lastCursorX = e.clientX;
+    lastCursorY = e.clientY;
+  }, true);
+
+  function cursorOverPanel(e) {
+    if (!hoverPanel || hoverPanel.hidden) return false;
+    if (!hoverPanel.classList.contains("is-visible")) return false;
+    var rt = e && e.relatedTarget;
+    if (rt && (rt === hoverPanel || hoverPanel.contains(rt))) return true;
+    if (typeof document.elementFromPoint !== "function") return false;
+    var n = document.elementFromPoint(lastCursorX, lastCursorY);
+    return !!(n && (n === hoverPanel || hoverPanel.contains(n)));
+  }
+
   function onPhraseBlur(e) {
     var myToken = focusToken;
     var el = e.currentTarget;
     setTimeout(function () {
-      // If a newer focus event has arrived, do nothing.
       if (myToken !== focusToken) return;
-      // If focus is still on a phrase (keyboard tab navigation),
-      // hand the focus state to wherever focus actually is.
       var active = document.activeElement;
       var stk = getStack();
+      var rt = e ? e.relatedTarget : null;
       if (
-        active &&
-        active.classList &&
-        active.classList.contains("phrase") &&
+        active && active.classList && active.classList.contains("phrase") &&
         stk && stk.contains(active)
       ) {
         applyFocus(active);
         return;
       }
-      // If the mouse is hovered over another phrase (mouseenter
-      // may have fired blur without firing focus on the same
-      // element), check elementFromPoint at the cursor.
       if (
-        e && e.relatedTarget &&
-        e.relatedTarget.classList &&
-        e.relatedTarget.classList.contains("phrase") &&
-        stk && stk.contains(e.relatedTarget)
+        rt && rt.classList && rt.classList.contains("phrase") &&
+        stk && stk.contains(rt)
       ) {
-        applyFocus(e.relatedTarget);
+        applyFocus(rt);
         return;
       }
-      clearFocus();
+      // The cursor might still be in transit through the gap between
+      // word and panel; re-check once mousemoves settle. A second
+      // blur/focus on the same element will bump the token and skip.
+      if (cursorOverPanel(e)) {
+        applyFocus(el);
+        return;
+      }
+      var recheckToken = focusToken;
+      setTimeout(function () {
+        if (recheckToken !== focusToken) return;
+        if (cursorOverPanel(null)) applyFocus(el);
+        else clearFocus();
+      }, 60);
     }, 0);
   }
 
@@ -689,7 +747,8 @@
     speakBtn.setAttribute("data-tts-lang", lessonLang);
     speakBtn.setAttribute("aria-label",
       "Hear " + sourceText + " pronounced natively");
-    speakBtn.textContent = "🔊 Listen";
+    var speakLabel = appendIcon(speakBtn, "speaker");
+    speakLabel.textContent = "Listen";
     speakBtn.addEventListener("click", function (ev) {
       ev.preventDefault();
       ev.stopPropagation();
@@ -707,7 +766,8 @@
     gt.rel = "noopener noreferrer";
     gt.setAttribute("aria-label",
       "Open " + sourceText + " in Google Translate");
-    gt.textContent = "🌐 Translate";
+    var gtLabel = appendIcon(gt, "globe");
+    gtLabel.textContent = "Translate";
     actions.appendChild(gt);
 
     p.appendChild(actions);
@@ -778,6 +838,10 @@
           }
         }, 160);
       }
+      // The panel's own mouseleave already set up the keep-focus
+      // state on the word; clear it now that the panel is gone so
+      // the word doesn't keep glowing.
+      clearFocus();
       hoverActiveEl = null;
     }, 200);
   }

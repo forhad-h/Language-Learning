@@ -128,7 +128,13 @@
     if (!btn) return;
     if (state) btn.setAttribute("data-tts-state", state);
     else btn.removeAttribute("data-tts-state");
-    if (label) btn.textContent = label;
+    if (label) {
+      // The button uses an inline SVG icon followed by a label span;
+      // update only the label so the icon stays in place.
+      var labelEl = btn.querySelector(".lc-icon-label");
+      if (labelEl) labelEl.textContent = label;
+      else btn.textContent = label;
+    }
   }
 
   // ---- Playback (shared by all server-backed providers) --------------
@@ -177,7 +183,7 @@
       if (hit) {
         promise = playBlob(hit, btn);
       } else {
-        setBtnState(btn, "loading", "⏳");
+        setBtnState(btn, "loading", "Loading");
         promise = provider.speak({
           text: text,
           lang: lang,
